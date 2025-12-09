@@ -8,9 +8,17 @@ __pycache__/
 *.log
 .coverage
 .pytest_cache/
-/data/*
-!data/*.dvc
-!data/**/.dvc
+
+# --- DVC & DATA ---
+# Ignorer tout le contenu des sous-dossiers de data
+data/**/*
+
+# Mais garder les fichiers de tracking DVC (IMPORTANT : *.dvc avec l'étoile)
+!data/**/*.dvc
+
+# Garder les fichiers .gitignore générés par DVC
+!data/**/*.gitignore
+
 dist/
 .idea/
 .vscode/
