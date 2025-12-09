@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.env
+.DS_Store
+*.pkl
+*.log
+.coverage
+.pytest_cache/
+/data/*
+!data/*.dvc
+!data/**/.dvc
+dist/
+.idea/
+.vscode/

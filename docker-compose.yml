@@ -1,0 +1,65 @@
+services:
+  # 1. Base de données (Stockage des métriques & logs)
+  postgres:
+    image: postgres:15-alpine
+    container_name: mlops_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mlops_net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Object Storage (Simulation AWS S3)
+  minio:
+    image: minio/minio:latest
+    container_name: mlops_minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000" # API S3
+      - "9001:9001" # Console UI Web
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - mlops_net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # 3. Setup Automatique (Crée les buckets pour nous)
+  init-minio:
+    image: minio/mc:latest
+    container_name: mlops_init_minio
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c " # Attente de sécurité sleep 5; # Connexion au serveur MinIO mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; # Création des buckets si inexistants mc mb myminio/dvc-storage || true; mc mb myminio/mlflow-artifacts || true; # Rendre le bucket MLflow public (lecture seule) pour faciliter l'accès mc anonymous set download myminio/mlflow-artifacts; echo '✅ Buckets MinIO initialisés avec succès !'; exit 0; "
+    networks:
+      - mlops_net
+
+# Persistance des données (Volumes Docker)
+volumes:
+  postgres_data:
+  minio_data:
+
+    # Réseau interne isolé
+networks:
+  mlops_net:
+    driver: bridge
