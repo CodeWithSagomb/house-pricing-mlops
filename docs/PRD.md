@@ -1,4 +1,4 @@
- PRD: Enterprise House Pricing Engine (M-HPE)
+PRD: Enterprise House Pricing Engine (M-HPE)
 Version : 1.0.0 
 Type : End-to-End MLOps Platform
 Lead Architect : cSagombaye

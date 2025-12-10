@@ -5,3 +5,4 @@
     endpointurl = http://localhost:9000
     access_key_id = minio_admin
     secret_access_key = minio_password
+    use_ssl = false
