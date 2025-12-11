@@ -1,0 +1,5 @@
+outs:
+- md5: e0f0115add47ff8d1eab0baf4ad779fc
+  size: 61
+  hash: md5
+  path: victory.txt

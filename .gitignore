@@ -9,15 +9,42 @@ __pycache__/
 .coverage
 .pytest_cache/
 
+# --- NOTEBOOKS ---
+.ipynb_checkpoints/
+
+# --- EXPERIMENTS & LOGS ---
+mlruns/
+wandb/
+*.mo
+*.pot
+
+# --- MODELS & ARTIFACTS ---
+# Ignorer les binaires de modèles s'ils traînent à la racine
+*.h5
+*.onnx
+*.pt
+*.pth
+*.joblib
+*.model
+
 # --- DVC & DATA ---
 # Ignorer tout le contenu des sous-dossiers de data
 data/**/*
+# Important : ne pas ignorer la structure des dossiers pour que DVC puisse les parcourir
+!data/**/
 
 # Mais garder les fichiers de tracking DVC (IMPORTANT : *.dvc avec l'étoile)
 !data/**/*.dvc
 
 # Garder les fichiers .gitignore générés par DVC
 !data/**/*.gitignore
+
+# --- DVC & MODELS DIRECTORY ---
+# Même logique pour le dossier models si vous stockez les modèles via DVC
+models/**/*
+!models/**/
+!models/**/*.dvc
+!models/**/*.gitignore
 
 dist/
 .idea/
