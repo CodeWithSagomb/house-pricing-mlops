@@ -1,6 +1,9 @@
 data:
   raw_path: "data/raw/housing.csv"
-  processed_path: "data/processed/housing_clean.csv"
+  # Nouveaux chemins
+  train_path: "data/processed/train.csv"
+  test_path: "data/processed/test.csv"
+  preprocessor_path: "data/processed/preprocessor.pkl" # L'objet de transformation
   test_size: 0.2
   random_state: 42
 
