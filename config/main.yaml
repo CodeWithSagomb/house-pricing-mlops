@@ -1,0 +1,12 @@
+data:
+  raw_path: "data/raw/housing.csv"
+  processed_path: "data/processed/housing_clean.csv"
+  test_size: 0.2
+  random_state: 42
+
+validation:
+  max_house_age: 100
+  min_income: 0
+
+mlflow:
+  experiment_name: "house-pricing-prod"
