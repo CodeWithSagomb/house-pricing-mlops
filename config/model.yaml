@@ -1,0 +1,15 @@
+training:
+  # Change ici pour switcher d'algo : "linear_regression" ou "random_forest"
+  model_type: "random_forest"  #"random_forest"
+  scoring: "neg_root_mean_squared_error"
+  cv_folds: 3  # Cross-validation
+
+# Grille de recherche pour la Régression Linéaire
+linear_regression:
+  fit_intercept: [true, false]
+
+# Grille de recherche pour le Random Forest
+random_forest:
+  n_estimators: [100, 300]
+  max_depth: [10, 50]
+  random_state: [42]

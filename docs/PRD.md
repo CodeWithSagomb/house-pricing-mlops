@@ -10,7 +10,7 @@ Le projet M-HPE (Modular House Pricing Engine) vise à simuler l'infrastructure 
 Contrairement à un projet de Data Science classique, la valeur ne réside pas dans la complexité mathématique du modèle, mais dans la résilience du pipeline de livraison. Le système doit être capable d'ingérer, nettoyer, entraîner, valider, déployer et monitorer des modèles de régression sans intervention humaine manuelle.
 
 2. Project Components (Functional Requirements)
-🧱 Component 1: Data Pipeline & Preprocessing (The Foundation)
+ Component 1: Data Pipeline & Preprocessing (The Foundation)
 Ingestion : Scripts modulaires (src/data/ingestion.py) simulant l'arrivée de données brutes (batchs temporels).
 Validation (Quality Gate 1) :
 Utilisation de Pydantic et Pandas pour rejeter les données corrompues (ex: surface < 0, prix manquant).
@@ -20,7 +20,7 @@ DVC (Data Version Control) tracke les fichiers .csv et .parquet.
 Storage Backend : MinIO (simulation S3 local) ou dossier local partagé.
 Feature Engineering : Pipeline Scikit-learn sauvegardé (Pickle) pour garantir que les transformations (Scaling, One-Hot) sont identiques en Training et en Serving.
 
-🧠 Component 2: Model Development (The Factory)
+Component 2: Model Development (The Factory)
 Design Pattern : Utilisation du Strategy Pattern pour l'interchangeabilité des algorithmes.
 V1 : Scikit-learn (Linear Regression / Random Forest).
 V2 : PyTorch (Préparation de l'architecture pour le futur).
@@ -29,7 +29,7 @@ MLflow capture : Paramètres, Métriques (RMSE, MAE), Dataset Commit Hash (Git+D
 Tuning : Implémentation d'une GridSearch configurable via config/model.yaml (pas de hardcoding).
 Registry : Le meilleur modèle est promu au statut "Staging" dans MLflow Model Registry.
 
-⚙️ Component 3: CI/CD Pipeline (The Guardrails)
+Component 3: CI/CD Pipeline (The Guardrails)
 Trigger : GitHub Actions se déclenche à chaque push sur main ou develop.
 Automated Tests (Quality Gate 2) :
 Unit Tests : Vérifient les fonctions de nettoyage.
@@ -38,7 +38,7 @@ Continuous Deployment (CD) :
 Si les tests passent : Build de l'image Docker app:latest.
 Push (simulé) vers un Registry.
 
-🚀 Component 4: Deployment & Serving (The Storefront)
+Component 4: Deployment & Serving (The Storefront)
 
 Serving Engine : FastAPI (Asynchrone, haute performance).
 Architecture :
@@ -49,7 +49,7 @@ API Key Authentication (Header X-API-KEY).
 Rate Limiting (ex: 100 req/min) pour éviter le DDOS.
 Container : Docker Multi-stage build (Image finale < 500Mo).
 
-👁️ Component 5: Monitoring & Observability (The Control Tower)
+Component 5: Monitoring & Observability (The Control Tower)
 
 System Metrics : Prometheus scrape /metrics (CPU, RAM, Latence, RPM, Error Rate).
 Visualisation : Grafana avec Dashboards pré-configurés (Provisioning as Code).
@@ -57,7 +57,7 @@ Data Observability :
 Evidently AI compare la distribution des requêtes live (Production) vs données d'entraînement (Reference).
 Détection de Data Drift (ex: les maisons deviennent plus grandes) et Concept Drift (le prix au m² change).
 
-🔄 Component 6: Feedback Loop & Retraining (The Automation)
+Component 6: Feedback Loop & Retraining (The Automation)
 
 Orchestrator : Apache Airflow (Dockerisé).
 Trigger Policy :
@@ -65,7 +65,7 @@ Schedule : Hebdomadaire (Cron).
 Event-based : Si Evidently détecte un Drift > 20%, appel API vers Airflow pour forcer un ré-entraînement (dvc repro).
 Evaluation Automatique : Le nouveau modèle n'est déployé que si son RMSE est meilleur que celui du modèle actuel (Champion/Challenger).
 
-🔒 Component 7: Security & Standards (The Compliance)
+Component 7: Security & Standards (The Compliance)
 
 Secrets Management : AUCUN mot de passe dans le code. Utilisation stricte de .env injecté par Docker Compose.
 Least Privilege : Les conteneurs Docker tournent en tant qu'utilisateur non-root.
@@ -116,3 +116,5 @@ Sprint 4 (Orchestration) : Airflow DAGs, Automatisation du dvc repro.
 Sprint 5 (Monitoring) : Prometheus, Grafana, Evidently Drift Detection.
 
 source .venv/bin/activate
+docker compose up -d
+poetry run mlflow ui --backend-store-uri postgresql://mlops:mlops_password@127.0.0.1:5432/mlflow_db --host 0.0.0.0 --port 5000
