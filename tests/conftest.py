@@ -1,11 +1,16 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from house_pricing.api.app import app
-from house_pricing.api.config import Settings
-from house_pricing.api.service import ModelService, get_model_service
+# Setup Environment BEFORE imports
+os.environ.setdefault("API_KEY", "test_key")
+os.environ.setdefault("MLFLOW_TRACKING_URI", "sqlite:///:memory:")
+
+from house_pricing.api.app import app  # noqa: E402
+from house_pricing.api.config import Settings  # noqa: E402
+from house_pricing.api.service import ModelService, get_model_service  # noqa: E402
 
 
 @pytest.fixture
@@ -37,9 +42,7 @@ def client(mock_model_service, mock_settings):
     # Et on patch les variables globales 'settings' qui ont déjà été initialisées
     with patch(
         "house_pricing.api.app.get_model_service", return_value=mock_model_service
-    ), patch("house_pricing.api.app.settings", mock_settings), patch(
-        "house_pricing.api.service.settings", mock_settings
-    ):
+    ), patch("house_pricing.api.app.settings", mock_settings):
         # On garde dependency_overrides pour les routes (double sécurité)
         app.dependency_overrides[get_model_service] = lambda: mock_model_service
         # app.dependency_overrides[get_settings] = lambda: mock_settings # Plus nécessaire avec le patch
