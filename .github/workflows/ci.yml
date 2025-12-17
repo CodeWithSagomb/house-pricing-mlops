@@ -35,6 +35,59 @@ jobs:
         run: |
           make test
 
-      - name: Verify Docker Build
-        run: |
           make docker-build
+
+  build-and-push:
+    name: Build & Push to GHCR
+    needs: ci
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: src/house_pricing/api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy to Self-Hosted Runner
+    needs: build-and-push
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest image
+        run: |
+          docker pull ghcr.io/${{ github.repository }}:latest
+
+      - name: Deploy with Docker Compose
+        run: |
+          # Stop old container if exists (optional if compose handles it, but safer for update)
+          # docker compose up -d will recreate if image changed
+          docker-compose up -d api

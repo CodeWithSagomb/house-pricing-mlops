@@ -84,6 +84,7 @@ services:
 
   # 5. House Pricing API
   api:
+    image: ghcr.io/codewithsagomb/house-pricing-mlops:latest
     build:
       context: .
       dockerfile: src/house_pricing/api/Dockerfile
