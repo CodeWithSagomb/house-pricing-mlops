@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from house_pricing.api.app import app
-from house_pricing.api.config import Settings, get_settings
+from house_pricing.api.config import Settings
 from house_pricing.api.service import ModelService, get_model_service
 
 
@@ -40,7 +40,6 @@ def client(mock_model_service, mock_settings):
     ), patch("house_pricing.api.app.settings", mock_settings), patch(
         "house_pricing.api.service.settings", mock_settings
     ):
-
         # On garde dependency_overrides pour les routes (double sécurité)
         app.dependency_overrides[get_model_service] = lambda: mock_model_service
         # app.dependency_overrides[get_settings] = lambda: mock_settings # Plus nécessaire avec le patch

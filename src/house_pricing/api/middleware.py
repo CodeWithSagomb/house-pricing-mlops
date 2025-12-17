@@ -3,7 +3,7 @@ import logging
 import time
 import uuid
 
-from fastapi import Request, Response
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
@@ -51,7 +51,8 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
         logger = logging.getLogger("api.middleware")
         # On triche un peu pour passer le context au formatter via 'extra'
-        # Mais le formatter standard ne prend pas extra aussi facilement sans adapter le RecordFactory ou utiliser LoggerAdapter.
+        # Mais le formatter standard ne prend pas extra aussi facilement sans adapter
+        # le RecordFactory ou utiliser LoggerAdapter.
         # On va faire simple : on loggue manuellement.
 
         start_time = time.time()

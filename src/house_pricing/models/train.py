@@ -103,6 +103,17 @@ def train_pipeline():
             registered_model_name=f"HousePricing_{model_type}",  # Créer une version dans le Registry
         )
 
+        # G. Enregistrement du Preprocessor (Dynamic Loading)
+        # On suppose qu'il est déjà généré dans data/processed/ (par build_features.py)
+        preprocessor_path = "data/processed/preprocessor.pkl"
+        if os.path.exists(preprocessor_path):
+            mlflow.log_artifact(preprocessor_path, artifact_path="preprocessor")
+            logger.info("Preprocessor pushé sur MLflow Artifacts")
+        else:
+            logger.warning(
+                "Attention : preprocessor.pkl non trouvé, il ne sera pas versionné !"
+            )
+
         logger.info("Modèle pushé sur MLflow Registry (MinIO Backend)")
 
 

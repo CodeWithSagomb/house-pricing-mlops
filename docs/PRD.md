@@ -1,5 +1,5 @@
 PRD: Enterprise House Pricing Engine (M-HPE)
-Version : 1.0.0 
+Version : 1.0.0
 Type : End-to-End MLOps Platform
 Lead Architect : cSagombaye
 Infrastructure : Local Cloud Simulation (Docker Compose / MinIO / Airflow)
@@ -118,3 +118,10 @@ Sprint 5 (Monitoring) : Prometheus, Grafana, Evidently Drift Detection.
 source .venv/bin/activate
 docker compose up -d
 poetry run mlflow ui --backend-store-uri postgresql://mlops:mlops_password@127.0.0.1:5432/mlflow_db --host 0.0.0.0 --port 5000
+
+docker run -d \
+  -p 8000:8000 \
+  -e MLFLOW_TRACKING_URI="http://mlops_minio:9000" \
+  --network host \
+  --name api-prod \
+  house-pricing-api:prod

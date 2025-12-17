@@ -1,5 +1,4 @@
 from house_pricing.api.exceptions import ModelNotLoadedError, PredictionError
-from house_pricing.api.schemas import HouseFeatures
 
 # Payload valide pour les tests
 VALID_PAYLOAD = {

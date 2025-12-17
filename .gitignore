@@ -49,3 +49,4 @@ models/**/*
 dist/
 .idea/
 .vscode/
+actions-runner/

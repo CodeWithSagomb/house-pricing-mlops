@@ -1,5 +1,3 @@
-import pytest
-
 from house_pricing.api.exceptions import ModelNotLoadedError
 
 
@@ -15,17 +13,6 @@ def test_predict_success(client, mock_model_service):
     """Test d'une prédiction réussie."""
     # Setup du Mock pour retourner une valeur précise
     mock_model_service.predict.return_value = (150000.0, "test_v1")
-
-    payload = {
-        "MedInc": 3.5,
-        "HouseAge": 30,
-        "AveRooms": 5,
-        "AveBedrms": 1,
-        "Population": 800,
-        "AveOccup": 3,
-        "Latitude": 37.5,
-        "Longitude": -122.0,
-    }
 
     # On doit fournir la clé API (bypassée via override si besoin, mais ici simulée)
     # Note: Dans conftest.py on injecte le SERVICE, pas la sécurité.

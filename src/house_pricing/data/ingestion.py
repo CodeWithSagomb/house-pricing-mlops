@@ -1,7 +1,6 @@
 import logging
 import os
 
-import pandas as pd
 import yaml
 from sklearn.datasets import fetch_california_housing
 

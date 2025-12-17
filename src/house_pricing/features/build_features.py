@@ -96,7 +96,7 @@ def build_features():
     preprocessor_path = config["data"]["preprocessor_path"]
     joblib.dump(preprocessor, preprocessor_path)
 
-    logger.info(f" Feature Engineering terminé.")
+    logger.info(" Feature Engineering terminé.")
     logger.info(f"   Train set : {train_df.shape} -> {train_path}")
     logger.info(f"   Test set  : {test_df.shape} -> {test_path}")
     logger.info(f"   Preprocessor sauvegardé -> {preprocessor_path}")

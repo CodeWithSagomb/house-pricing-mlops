@@ -4,17 +4,21 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import (BackgroundTasks, Depends, FastAPI, HTTPException, Request,
-                     Security)
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Security
 from fastapi.responses import JSONResponse
 from fastapi.security.api_key import APIKeyHeader
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from house_pricing.api.config import Settings, get_settings
+from house_pricing.api.config import get_settings
 from house_pricing.api.exceptions import ModelNotLoadedError, PredictionError
 from house_pricing.api.middleware import RequestIDMiddleware, setup_logging
-from house_pricing.api.schemas import (Feedback, HouseFeatures, PredictionLog,
-                                       PredictionResponse, RootResponse)
+from house_pricing.api.schemas import (
+    Feedback,
+    HouseFeatures,
+    PredictionLog,
+    PredictionResponse,
+    RootResponse,
+)
 from house_pricing.api.service import ModelService, get_model_service
 
 # Setup

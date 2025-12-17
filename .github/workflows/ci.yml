@@ -1,0 +1,40 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  ci:
+    name: Continuous Integration
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          pipx install poetry==2.0.0
+
+      - name: Install Dependencies
+        run: |
+          make install
+
+      - name: Run Linting (Black, Isort, Flake8)
+        run: |
+          make lint
+
+      - name: Run Tests (Pytest)
+        run: |
+          make test
+
+      - name: Verify Docker Build
+        run: |
+          make docker-build

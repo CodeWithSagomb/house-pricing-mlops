@@ -1,0 +1,43 @@
+# Git & DVC
+.git
+.dvc
+.gitignore
+.dvcignore
+
+# Secrets (CRITIQUE : Ne jamais baker de secrets dans l'image)
+.env
+.env.*
+
+# Python & Poetry
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+
+# Data
+# On ignore tout data/SAUF ce qu'on veut explicitement (geré dans le Dockerfile par COPY)
+data/raw
+# data/processed/*.csv # Decommente si on veut empecher la copie de csv accidentelle
+
+# IDE & OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.swp
+
+# Documentation & Tests & Tools
+docs
+tests
+notebooks
+airflow
+monitoring
+scripts
+
+# Logs
+*.log
+logs/

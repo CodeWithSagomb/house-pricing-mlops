@@ -39,5 +39,10 @@ dev = [
     "flake8 (>=7.3.0,<8.0.0)",
     "isort (>=7.0.0,<8.0.0)",
     "httpx (>=0.28.1,<0.29.0)",
-    "evidently (>=0.7.17,<0.8.0)"
+    "evidently (>=0.7.17,<0.8.0)",
+    "pre-commit (>=4.5.1,<5.0.0)"
 ]
+
+[tool.isort]
+profile = "black"
+line_length = 88
