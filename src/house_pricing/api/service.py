@@ -48,7 +48,9 @@ class ModelService:
             self.preprocessor = joblib.load(local_path)
             logger.info("✅ Preprocessor téléchargé et chargé depuis MLflow.")
         except Exception as e:
-            logger.error(f"❌ Impossible de charger le preprocessor depuis MLflow : {e}")
+            logger.error(
+                f"❌ Impossible de charger le preprocessor depuis MLflow : {e}"
+            )
             # Fallback local (optionnel, pour dev)
             logger.warning("⚠️ Tentative de fallback local...")
             self.preprocessor = joblib.load(settings.PREPROCESSOR_PATH)
