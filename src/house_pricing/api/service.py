@@ -8,7 +8,6 @@ import pandas as pd
 from house_pricing.api.config import get_settings
 from house_pricing.api.exceptions import ModelNotLoadedError, PredictionError
 
-settings = get_settings()
 logger = logging.getLogger("api.service")
 
 
@@ -23,6 +22,7 @@ class ModelService:
         logger.info("🔌 Chargement des artefacts ML...")
 
         # 1. Setup MLflow
+        settings = get_settings()
         mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
         client = mlflow.MlflowClient()
 

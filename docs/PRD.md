@@ -125,3 +125,9 @@ docker run -d \
   --network host \
   --name api-prod \
   house-pricing-api:prod
+
+
+# Démarre Postgres, MinIO et MLflow en arrière-plan
+docker-compose up -d postgres minio mlflow init-minio
+
+make run
