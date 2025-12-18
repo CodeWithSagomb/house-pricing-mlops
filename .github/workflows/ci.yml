@@ -35,6 +35,8 @@ jobs:
         run: |
           make test
 
+      - name: Verify Docker Build
+        run: |
           make docker-build
 
   build-and-push:
