@@ -72,9 +72,50 @@ jobs:
             ghcr.io/${{ env.REPO_NAME }}:latest
             ghcr.io/${{ env.REPO_NAME }}:${{ github.sha }}
 
+  model-validation:
+    name: Model Validation Gate
+    needs: build-and-push
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          pipx install poetry==2.0.0
+
+      - name: Install Dependencies
+        run: |
+          poetry install --no-interaction
+
+      - name: Create .env file
+        run: |
+          echo "MLFLOW_TRACKING_URI=http://localhost:5000" >> .env
+          echo "MODEL_NAME=HousePricing_random_forest" >> .env
+
+      - name: Run Model Validation Gate
+        run: |
+          poetry run python -m house_pricing.models.validation_gate
+        continue-on-error: true
+        id: validation
+
+      - name: Log Validation Result
+        run: |
+          if [ "${{ steps.validation.outcome }}" == "success" ]; then
+            echo "✅ Challenger promoted to Champion!"
+          else
+            echo "⚠️ Challenger rejected or no challenger found (this is OK for normal deploys)"
+          fi
+
   deploy:
     name: Deploy to Self-Hosted Runner
-    needs: build-and-push
+    needs: model-validation
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main'
     permissions:

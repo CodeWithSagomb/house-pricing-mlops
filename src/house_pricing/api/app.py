@@ -20,6 +20,10 @@ from house_pricing.api.schemas import (
     RootResponse,
 )
 from house_pricing.api.service import ModelService, get_model_service
+from house_pricing.monitoring.drift_detector import (
+    get_drift_detector,
+    init_drift_detector,
+)
 
 # Setup
 settings = get_settings()
@@ -45,6 +49,16 @@ async def lifespan(app: FastAPI):
     # Au démarrage : on charge le modèle via le service
     try:
         get_model_service().load_artifacts()
+
+        # Initialiser le drift detector avec les données de référence
+        try:
+            import pandas as pd
+
+            reference_data = pd.read_csv("data/processed/train.csv")
+            init_drift_detector(reference_data)
+            logger.info("✅ DriftDetector initialisé avec données de référence.")
+        except Exception as e:
+            logger.warning(f"⚠️ DriftDetector non initialisé: {e}")
     except Exception as e:
         logger.error(f"Crash au démarrage : {e}")
         raise e
@@ -170,8 +184,23 @@ def model_metadata(service: ModelService = Depends(get_model_service)):
 @app.post("/feedback", tags=["Model Operations"])
 async def feedback_endpoint(feedback: Feedback, api_key: str = Depends(verify_api_key)):
     """Reçoit le prix réel pour monitorer le drift."""
-    # Dans la vraie vie : stocker dans DB ou envoyer à Evidently
     logger.info(
         f"🎯 [Feedback] RequestID={feedback.request_id} | TruePrice={feedback.true_price}"
     )
-    return {"status": "received"}
+
+    # Intégration Drift Monitoring (Axe 4)
+    drift_result = None
+    drift_detector = get_drift_detector()
+    if drift_detector and feedback.features and feedback.prediction:
+        drift_result = drift_detector.add_prediction(
+            features=feedback.features.model_dump(),
+            prediction=feedback.prediction,
+            true_value=feedback.true_price,
+        )
+        if drift_result and drift_result.get("drift_detected"):
+            logger.warning(f"🚨 DRIFT ALERT: {drift_result}")
+
+    return {
+        "status": "received",
+        "drift_analysis": drift_result,
+    }

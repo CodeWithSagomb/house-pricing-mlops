@@ -25,6 +25,9 @@ class PredictionResponse(BaseModel):
 class Feedback(BaseModel):
     request_id: str
     true_price: float
+    # Features de la prédiction originale (pour le drift monitoring)
+    features: HouseFeatures | None = None
+    prediction: float | None = None
     comments: str | None = None
 
 
