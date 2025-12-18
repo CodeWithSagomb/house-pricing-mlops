@@ -5981,6 +5981,18 @@ files = [
 ]
 
 [[package]]
+name = "sniffio"
+version = "1.3.1"
+description = "Sniff out which async library your code is running under"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2"},
+    {file = "sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc"},
+]
+
+[[package]]
 name = "sqlalchemy"
 version = "2.0.44"
 description = "Database Abstraction Library"
@@ -7256,4 +7268,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "aee0fa381d1b7d624e1bb976d30805ee1f4d1659cd1196c467e06ab2e30841da"
+content-hash = "c2e3f1fd03e14ce8bf4df3abb3f906213c2ba1053de912f958512e448e0ffbaf"

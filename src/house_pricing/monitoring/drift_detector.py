@@ -2,6 +2,9 @@
 Drift Detector - Axe 4 Enterprise MLOps
 =======================================
 Detects data drift and model performance degradation using Evidently AI.
+
+NOTE: Evidently imports are made conditional due to compatibility issues
+with certain versions. If imports fail, drift detection is disabled gracefully.
 """
 
 import logging
@@ -10,11 +13,31 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from evidently import ColumnMapping
-from evidently.metric_preset import DataDriftPreset
-from evidently.report import Report
 
 logger = logging.getLogger(__name__)
+
+# Conditional Evidently imports (compatibility with v0.7+)
+EVIDENTLY_AVAILABLE = False
+try:
+    from evidently.metric_preset import DataDriftPreset
+    from evidently.report import Report
+    from evidently.utils.data_preprocessing import ColumnMapping
+
+    EVIDENTLY_AVAILABLE = True
+except ImportError:
+    try:
+        # Fallback for older Evidently versions
+        from evidently import ColumnMapping
+        from evidently.metric_preset import DataDriftPreset
+        from evidently.report import Report
+
+        EVIDENTLY_AVAILABLE = True
+    except ImportError as e:
+        logger.warning(f"⚠️ Evidently not available, drift detection disabled: {e}")
+        # Stubs for when Evidently is not available
+        ColumnMapping = None
+        DataDriftPreset = None
+        Report = None
 
 
 class DriftDetector:
@@ -35,6 +58,15 @@ class DriftDetector:
             target_column: Nom de la colonne target.
             prediction_column: Nom de la colonne de prédiction.
         """
+        if not EVIDENTLY_AVAILABLE:
+            logger.warning(
+                "⚠️ DriftDetector créé mais inactif (Evidently non disponible)"
+            )
+            self.enabled = False
+            self.reference_data = None
+            return
+
+        self.enabled = True
         self.reference_data = reference_data
         self.target_column = target_column
         self.prediction_column = prediction_column
@@ -77,6 +109,9 @@ class DriftDetector:
             prediction: Valeur prédite.
             true_value: Valeur réelle (si disponible via feedback).
         """
+        if not self.enabled:
+            return None
+
         record = {
             **features,
             self.prediction_column: prediction,
@@ -100,6 +135,9 @@ class DriftDetector:
         Returns:
             dict avec les résultats de l'analyse.
         """
+        if not self.enabled:
+            return {"status": "disabled", "reason": "Evidently not available"}
+
         if len(self.production_buffer) < 10:
             logger.warning("⚠️ Pas assez de données pour l'analyse (min: 10)")
             return {"status": "insufficient_data"}
@@ -153,7 +191,7 @@ class DriftDetector:
 
         return analysis_result
 
-    def _save_report(self, report: Report):
+    def _save_report(self, report):
         """Sauvegarde le rapport HTML dans le dossier de logs."""
         reports_dir = Path("/app/logs/drift_reports")
         reports_dir.mkdir(parents=True, exist_ok=True)

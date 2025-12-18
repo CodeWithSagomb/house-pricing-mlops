@@ -20,10 +20,27 @@ from house_pricing.api.schemas import (
     RootResponse,
 )
 from house_pricing.api.service import ModelService, get_model_service
-from house_pricing.monitoring.drift_detector import (
-    get_drift_detector,
-    init_drift_detector,
-)
+
+# Drift detector - optional (Evidently can have import issues)
+try:
+    from house_pricing.monitoring.drift_detector import (
+        get_drift_detector,
+        init_drift_detector,
+    )
+
+    DRIFT_ENABLED = True
+except ImportError as e:
+    import logging as _log
+
+    _log.warning(f"⚠️ Drift monitoring disabled (import error): {e}")
+    DRIFT_ENABLED = False
+
+    def get_drift_detector():
+        return None
+
+    def init_drift_detector(ref):
+        pass
+
 
 # Setup
 settings = get_settings()
