@@ -42,6 +42,14 @@ def train_pipeline():
     df_train = pd.read_csv(train_path)
     df_test = pd.read_csv(test_path)
 
+    # 2.5 DATA CONTRACT VALIDATION (Axe 2 Enterprise)
+    from house_pricing.data.contracts import validate_processed_data
+
+    logger.info("🛡️ Validation des Data Contracts (Pandera)...")
+    df_train = validate_processed_data(df_train)
+    df_test = validate_processed_data(df_test)
+    logger.info("✅ Data Contracts validés avec succès.")
+
     # Séparation X/y (On sait que la target est à la fin ou nommée MedHouseVal)
     target_col = "MedHouseVal"
     X_train = df_train.drop(columns=[target_col])

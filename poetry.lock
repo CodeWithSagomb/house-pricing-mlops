@@ -3524,7 +3524,7 @@ version = "1.1.0"
 description = "Type system extensions for programs checked with the mypy type checker."
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "mypy_extensions-1.1.0-py3-none-any.whl", hash = "sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505"},
     {file = "mypy_extensions-1.1.0.tar.gz", hash = "sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558"},
@@ -4054,6 +4054,42 @@ spss = ["pyreadstat (>=1.2.0)"]
 sql-other = ["SQLAlchemy (>=2.0.0)", "adbc-driver-postgresql (>=0.8.0)", "adbc-driver-sqlite (>=0.8.0)"]
 test = ["hypothesis (>=6.46.1)", "pytest (>=7.3.2)", "pytest-xdist (>=2.2.0)"]
 xml = ["lxml (>=4.9.2)"]
+
+[[package]]
+name = "pandera"
+version = "0.27.0"
+description = "A light-weight and flexible data validation and testing tool for statistical data objects."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "pandera-0.27.0-py3-none-any.whl", hash = "sha256:e43b8062dfcde984300d798686815cc93feaae09645d3cddee3ab437f2d11ed5"},
+    {file = "pandera-0.27.0.tar.gz", hash = "sha256:83c66d5896b97b3a91c810621038d2495f56c83864493819e7587d2059e641ad"},
+]
+
+[package.dependencies]
+packaging = ">=20.0"
+pydantic = "*"
+typeguard = "*"
+typing_extensions = "*"
+typing_inspect = ">=0.6.0"
+
+[package.extras]
+all = ["black", "dask[dataframe]", "distributed", "fastapi", "frictionless (<=4.40.8)", "geopandas (<1.1.0)", "hypothesis (>=6.92.7)", "ibis-framework (>=9.0.0)", "modin", "pandas-stubs", "polars (>=0.20.0)", "pyspark[connect] (>=3.2.0,<4.0.0)", "pyyaml (>=5.1)", "ray", "scipy", "scipy-stubs ; python_version >= \"3.10\"", "shapely"]
+dask = ["dask[dataframe]", "distributed"]
+fastapi = ["fastapi"]
+geopandas = ["geopandas (<1.1.0)", "shapely"]
+hypotheses = ["scipy"]
+ibis = ["ibis-framework (>=9.0.0)"]
+io = ["black", "frictionless (<=4.40.8)", "pyyaml (>=5.1)"]
+modin = ["dask[dataframe]", "distributed", "modin", "ray"]
+modin-dask = ["dask[dataframe]", "distributed", "modin"]
+modin-ray = ["modin", "ray"]
+mypy = ["pandas-stubs", "scipy-stubs ; python_version >= \"3.10\""]
+pandas = ["numpy (>=1.24.4)", "pandas (>=2.1.1)"]
+polars = ["polars (>=0.20.0)"]
+pyspark = ["pyspark[connect] (>=3.2.0,<4.0.0)"]
+strategies = ["hypothesis (>=6.92.7)"]
 
 [[package]]
 name = "pathspec"
@@ -6285,6 +6321,21 @@ slack = ["slack-sdk"]
 telegram = ["requests"]
 
 [[package]]
+name = "typeguard"
+version = "4.4.4"
+description = "Run-time type checker for Python"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "typeguard-4.4.4-py3-none-any.whl", hash = "sha256:b5f562281b6bfa1f5492470464730ef001646128b180769880468bd84b68b09e"},
+    {file = "typeguard-4.4.4.tar.gz", hash = "sha256:3a7fd2dffb705d4d0efaed4306a704c89b9dee850b688f060a8b1615a79e5f74"},
+]
+
+[package.dependencies]
+typing_extensions = ">=4.14.0"
+
+[[package]]
 name = "typer"
 version = "0.20.0"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
@@ -6320,7 +6371,7 @@ version = "0.9.0"
 description = "Runtime inspection utilities for typing module."
 optional = false
 python-versions = "*"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "typing_inspect-0.9.0-py3-none-any.whl", hash = "sha256:9ee6fc59062311ef8547596ab6b955e1b8aa46242d854bfc78f4f6b0eff35f9f"},
     {file = "typing_inspect-0.9.0.tar.gz", hash = "sha256:b23fc42ff6f6ef6954e4852c1fb512cdd18dbea03134f91f856a95ccc9461f78"},
@@ -7205,4 +7256,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "d2cc430642cb44402f07d0e9522a9db57c6a37fff945bbdea6430a1a185a9a7d"
+content-hash = "aee0fa381d1b7d624e1bb976d30805ee1f4d1659cd1196c467e06ab2e30841da"

@@ -131,3 +131,7 @@ docker run -d \
 docker-compose up -d postgres minio mlflow init-minio
 
 make run
+
+cd actions-runner
+export RUNNER_ALLOW_RUNASROOT=1
+./run.sh
