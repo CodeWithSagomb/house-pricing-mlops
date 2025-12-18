@@ -84,19 +84,20 @@ RawDataSchema = DataFrameSchema(
 
 
 # --- SCHEMA 2: PROCESSED DATA ---
-# Données après feature engineering (prêtes pour training)
+# Données après feature engineering (normalisées/standardisées)
+# Note: Les features peuvent être négatives après StandardScaler
 
 ProcessedDataSchema = DataFrameSchema(
     {
-        "MedInc": Column(float, checks=Check.ge(0)),
-        "HouseAge": Column(float, checks=Check.ge(0)),
-        "AveRooms": Column(float, checks=Check.ge(0)),
-        "AveBedrms": Column(float, checks=Check.ge(0)),
-        "Population": Column(float, checks=Check.ge(0)),
-        "AveOccup": Column(float, checks=Check.ge(0)),
+        "MedInc": Column(float),  # Peut être négatif après normalisation
+        "HouseAge": Column(float),
+        "AveRooms": Column(float),
+        "AveBedrms": Column(float),
+        "Population": Column(float),
+        "AveOccup": Column(float),
         "Latitude": Column(float),
         "Longitude": Column(float),
-        "MedHouseVal": Column(float, checks=Check.ge(0)),
+        "MedHouseVal": Column(float, checks=Check.ge(0)),  # Target reste positive
     },
     name="ProcessedDataSchema",
     strict=True,  # Pas de colonnes inattendues
