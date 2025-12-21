@@ -13,6 +13,9 @@ from house_pricing.api.config import get_settings
 from house_pricing.api.exceptions import ModelNotLoadedError, PredictionError
 from house_pricing.api.middleware import RequestIDMiddleware, setup_logging
 from house_pricing.api.schemas import (
+    BatchPredictionItem,
+    BatchPredictionRequest,
+    BatchPredictionResponse,
     Feedback,
     HouseFeatures,
     PredictionLog,
@@ -91,6 +94,7 @@ tags_metadata = [
         "description": "Endpoints de base et monitoring système.",
     },
     {"name": "Model Operations", "description": "Inférence et gestion du modèle ML."},
+    {"name": "Data Analytics", "description": "Statistiques et analyse des données."},
     {"name": "Observability", "description": "Métriques techniques."},
 ]
 
@@ -153,6 +157,44 @@ def health(service: ModelService = Depends(get_model_service)):
     return {"status": "ok", "model_version": service.model_version}
 
 
+@app.get("/data/stats", tags=["Data Analytics"])
+def data_statistics():
+    """
+    Retourne les statistiques descriptives des données d'entraînement.
+    Utile pour comprendre la distribution des features.
+    """
+    import os
+
+    import pandas as pd
+
+    train_path = "data/processed/train.csv"
+
+    if not os.path.exists(train_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Training data not found. Run 'make dataops' first.",
+        )
+
+    df = pd.read_csv(train_path)
+
+    # Statistiques descriptives
+    stats = df.describe().to_dict()
+
+    # Informations supplémentaires
+    info = {
+        "row_count": len(df),
+        "column_count": len(df.columns),
+        "columns": list(df.columns),
+        "missing_values": df.isnull().sum().to_dict(),
+        "target_column": "MedHouseVal",
+    }
+
+    return {
+        "info": info,
+        "statistics": stats,
+    }
+
+
 @app.post("/predict", response_model=PredictionResponse, tags=["Model Operations"])
 async def predict_endpoint(
     features: HouseFeatures,
@@ -187,15 +229,76 @@ async def predict_endpoint(
     }
 
 
+@app.post(
+    "/predict/batch", response_model=BatchPredictionResponse, tags=["Model Operations"]
+)
+async def predict_batch_endpoint(
+    request: BatchPredictionRequest,
+    api_key: str = Depends(verify_api_key),
+    service: ModelService = Depends(get_model_service),
+):
+    """
+    Prédiction en batch (max 100 éléments).
+    Utile pour traiter plusieurs maisons en une seule requête.
+    """
+    start_time = time.time()
+
+    results = []
+    for idx, features in enumerate(request.predictions):
+        price, version = service.predict(features.model_dump())
+        results.append(BatchPredictionItem(index=idx, predicted_price=price))
+
+    process_time = (time.time() - start_time) * 1000
+
+    return BatchPredictionResponse(
+        results=results,
+        total=len(results),
+        model_version=version,
+        processing_time_ms=round(process_time, 2),
+    )
+
+
 @app.get("/model/metadata", tags=["Model Operations"])
 def model_metadata(service: ModelService = Depends(get_model_service)):
-    """Retourne les métadonnées du modèle chargé."""
+    """Retourne les métadonnées complètes du modèle chargé."""
+    metadata = service.get_metadata()
     return {
         "model_name": settings.MODEL_NAME,
-        "model_alias": settings.MODEL_ALIAS,
-        "model_version": service.model_version,
-        # On pourrait ajouter la date de chargement etc.
+        "configured_alias": settings.MODEL_ALIAS,
+        **metadata,
     }
+
+
+@app.post("/model/reload", tags=["Model Operations"])
+async def reload_model(
+    api_key: str = Depends(verify_api_key),
+    service: ModelService = Depends(get_model_service),
+):
+    """
+    Hot reload: Recharge le modèle depuis MLflow sans restart.
+    Utile après promotion d'un nouveau modèle @champion.
+    """
+    logger.info("🔄 Hot reload requested...")
+    old_version = service.model_version
+
+    try:
+        service.load_artifacts()
+        new_version = service.model_version
+
+        if old_version != new_version:
+            logger.info(f"✅ Model updated: v{old_version} → v{new_version}")
+        else:
+            logger.info(f"✅ Model reloaded (same version: v{new_version})")
+
+        return {
+            "status": "reloaded",
+            "previous_version": old_version,
+            "current_version": new_version,
+            "metadata": service.get_metadata(),
+        }
+    except Exception as e:
+        logger.error(f"❌ Reload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Reload failed: {e}")
 
 
 @app.post("/feedback", tags=["Model Operations"])

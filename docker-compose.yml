@@ -67,7 +67,7 @@ services:
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
     # Installation au démarrage (simple et efficace pour dev)
     command: >
-      sh -c "pip install mlflow[extras]==2.11.1 psycopg2-binary boto3 && mlflow server --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB} --default-artifact-root s3://mlflow-artifacts --host 0.0.0.0 --port 5000"
+      sh -c "pip install mlflow==3.7.0 psycopg2-binary boto3 && mlflow server --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB} --default-artifact-root s3://mlflow-artifacts --host 0.0.0.0 --port 5000"
     ports:
       - "5000:5000"
     depends_on:
@@ -97,6 +97,7 @@ services:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - API_KEY=${API_KEY:-dev-secret-key}
       # Vars pour la DB (si besoin écriture logs)
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -109,10 +110,50 @@ services:
     networks:
       - mlops_net
 
+  # 6. Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: mlops_prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - mlops_net
+    depends_on:
+      - api
+
+  # 7. Grafana - Dashboards & Visualization
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: mlops_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - mlops_net
+    depends_on:
+      - prometheus
+
 # Persistance des données (Volumes Docker)
 volumes:
   postgres_data:
   minio_data:
+  prometheus_data:
+  grafana_data:
 
     # Réseau interne isolé
 networks:

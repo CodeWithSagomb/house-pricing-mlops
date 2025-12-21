@@ -29,12 +29,12 @@ def test_metrics_endpoint(client):
 
 def test_metadata_endpoint(client, mock_model_service):
     """Vérifie que /model/metadata retourne les bonnes infos."""
-    # Le mock returns "test_v1"
     response = client.get("/model/metadata")
     assert response.status_code == 200
     json_data = response.json()
-    assert json_data["model_version"] == "test_v1"
+    assert json_data["version"] == "test_v1"  # From get_metadata()
     assert "model_name" in json_data
+    assert "source" in json_data
 
 
 def test_root_endpoint(client):

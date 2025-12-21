@@ -42,3 +42,20 @@ class PredictionLog(BaseModel):
     inputs: HouseFeatures
     output: float
     model_version: str
+
+
+# Batch predictions
+class BatchPredictionRequest(BaseModel):
+    predictions: list[HouseFeatures] = Field(..., min_length=1, max_length=100)
+
+
+class BatchPredictionItem(BaseModel):
+    index: int
+    predicted_price: float
+
+
+class BatchPredictionResponse(BaseModel):
+    results: list[BatchPredictionItem]
+    total: int
+    model_version: str
+    processing_time_ms: float

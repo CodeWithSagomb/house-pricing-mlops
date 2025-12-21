@@ -31,6 +31,14 @@ def mock_model_service():
     mock_service.model = MagicMock()
     mock_service.preprocessor = MagicMock()
     mock_service.model_version = "test_v1"
+    # Mock get_metadata for the new endpoint
+    mock_service.get_metadata.return_value = {
+        "version": "test_v1",
+        "name": "test_model",
+        "source": "alias:champion",
+        "run_id": "abc123",
+        "loaded_at": "2025-01-01T00:00:00",
+    }
     return mock_service
 
 

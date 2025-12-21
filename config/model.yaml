@@ -10,6 +10,6 @@ linear_regression:
 
 # Grille de recherche pour le Random Forest
 random_forest:
-  n_estimators: [100, 300]
+  n_estimators: [50, 200]
   max_depth: [10, 50]
   random_state: [42]

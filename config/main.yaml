@@ -13,3 +13,10 @@ validation:
 
 mlflow:
   experiment_name: "house-pricing-prod"
+
+# DataOps Pipeline Configuration
+dataops:
+  source_type: "sklearn"  # sklearn | file
+  validation_mode: "permissive"  # strict | permissive (permissive filters outliers)
+  auto_version: true  # DVC versioning
+  db_logging: false  # PostgreSQL lineage (requires init-db)

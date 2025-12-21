@@ -135,3 +135,18 @@ make run
 cd actions-runner
 export RUNNER_ALLOW_RUNASROOT=1
 ./run.sh
+
+
+###############################################################
+
+# Exécuter le pipeline DataOps
+PYTHONPATH=src poetry run python -m house_pricing.dataops.pipeline
+
+# Lancer l'entraînement
+PYTHONPATH=src MLFLOW_TRACKING_URI=http://localhost:5000 poetry run python -m house_pricing.models.train
+
+#######################################################################################
+
+✅ Monitoring started!
+   📊 Prometheus: http://localhost:9090
+   📈 Grafana:    http://localhost:3000 (admin/admin)
