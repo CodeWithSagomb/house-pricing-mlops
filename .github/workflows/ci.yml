@@ -180,26 +180,23 @@ jobs:
           MLFLOW_S3_ENDPOINT_URL=http://minio:9000
           EOF
 
-      - name: Ensure infrastructure is running
-        run: docker compose up -d postgres minio --no-recreate
-
-      - name: Wait for infrastructure
+      - name: Check infrastructure status
         run: |
-          echo "Waiting for PostgreSQL and MinIO..."
-          sleep 10
+          echo "Checking existing containers..."
           docker compose ps
+          echo "Infrastructure should already be running from previous deploys"
 
-      - name: Deploy API only
+      - name: Deploy API only (no dependency wait)
         run: |
           # Stop API if running
           docker compose stop api || true
           # Remove old API container
           docker compose rm -f api || true
-          # Start fresh API container
-          docker compose up -d api
+          # Start fresh API container WITHOUT waiting for dependencies
+          docker compose up -d --no-deps api
 
       - name: Wait for startup
-        run: sleep 20
+        run: sleep 25
 
       - name: Health check
         id: health
