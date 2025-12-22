@@ -182,13 +182,27 @@ jobs:
 
       - name: Start infrastructure
         run: |
-          echo "Starting infrastructure..."
+          echo "Starting postgres and minio..."
           docker compose up -d postgres minio
-          echo "Waiting for postgres and minio..."
-          sleep 30
+          sleep 15
+
+      - name: Start MLflow and wait for health
+        run: |
+          echo "Starting MLflow..."
           docker compose up -d mlflow
-          echo "Waiting for mlflow..."
-          sleep 60
+
+          echo "Waiting for MLflow to be healthy (up to 3 min)..."
+          for i in {1..18}; do
+            if curl -sf http://localhost:5000/health > /dev/null 2>&1; then
+              echo "MLflow is healthy!"
+              break
+            fi
+            echo "Attempt $i/18: MLflow not ready, waiting 10s..."
+            sleep 10
+          done
+
+          # Final check
+          curl -sf http://localhost:5000/health || (echo "MLflow failed to start!" && exit 1)
 
       - name: Check infrastructure status
         run: docker compose ps
@@ -203,7 +217,7 @@ jobs:
           docker compose up -d --no-deps api
 
       - name: Wait for API startup
-        run: sleep 30
+        run: sleep 45
 
       - name: Health check
         id: health
