@@ -180,16 +180,26 @@ jobs:
           MLFLOW_S3_ENDPOINT_URL=http://minio:9000
           EOF
 
-      - name: Pull latest image
-        run: |
-          REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
-          docker pull ghcr.io/${REPO}:latest
+      - name: Ensure infrastructure is running
+        run: docker compose up -d postgres minio --no-recreate
 
-      - name: Deploy API
-        run: docker compose up -d api --force-recreate
+      - name: Wait for infrastructure
+        run: |
+          echo "Waiting for PostgreSQL and MinIO..."
+          sleep 10
+          docker compose ps
+
+      - name: Deploy API only
+        run: |
+          # Stop API if running
+          docker compose stop api || true
+          # Remove old API container
+          docker compose rm -f api || true
+          # Start fresh API container
+          docker compose up -d api
 
       - name: Wait for startup
-        run: sleep 15
+        run: sleep 20
 
       - name: Health check
         id: health

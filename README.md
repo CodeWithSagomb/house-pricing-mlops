@@ -27,6 +27,7 @@
 - ✅ Coverage report avec seuil 70%
 - ✅ Security scanning (Trivy)
 - ✅ Auto-rollback on failure
+Push → Lint → Test → Security → Build → Deploy → Notify
 
 ---
 
