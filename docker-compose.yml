@@ -57,7 +57,10 @@ services:
 
   # 4. MLflow Tracking Server
   mlflow:
-    image: python:3.10-slim
+    build:
+      context: ./docker/mlflow
+      dockerfile: Dockerfile
+    image: mlops-mlflow:local
     container_name: mlops_mlflow
     restart: always
     environment:
@@ -65,7 +68,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
     command: >
-      sh -c "pip install mlflow==3.7.0 psycopg2-binary boto3 && mlflow server --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB} --default-artifact-root s3://mlflow-artifacts --host 0.0.0.0 --port 5000 --allowed-hosts '*'"
+      mlflow server --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB} --default-artifact-root s3://mlflow-artifacts --host 0.0.0.0 --port 5000
     ports:
       - "5000:5000"
     depends_on:
@@ -76,11 +79,11 @@ services:
     networks:
       - mlops_net
     healthcheck:
-      test: [ "CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:5000/health\")' || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: [ "CMD-SHELL", "curl -sf http://localhost:5000/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   # 5. House Pricing API
   api:

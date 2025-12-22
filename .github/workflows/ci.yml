@@ -186,8 +186,10 @@ jobs:
           docker compose up -d postgres minio
           sleep 15
 
-      - name: Start MLflow and wait for health
+      - name: Build and start MLflow
         run: |
+          echo "Building MLflow image (first time may take a few minutes)..."
+          docker compose build mlflow
           echo "Starting MLflow..."
           docker compose up -d mlflow
 
