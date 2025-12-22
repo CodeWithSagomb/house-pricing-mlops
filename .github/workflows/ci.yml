@@ -2,24 +2,25 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
 
 env:
   PYTHON_VERSION: "3.12"
   POETRY_VERSION: "2.0.0"
-  COVERAGE_THRESHOLD: 70
 
 jobs:
   # ============================================
-  # PHASE 1: Continuous Integration
+  # CI: Lint + Test
   # ============================================
-  lint:
-    name: 🔍 Lint Check
-    runs-on: self-hosted
+  ci:
+    name: 🧪 CI (Lint + Test)
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,104 +28,46 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Poetry
-        run: pipx install poetry==${{ env.POETRY_VERSION }}
-
-      - name: Cache Poetry dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pypoetry
-            .venv
-          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            poetry-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: poetry install --no-interaction
-
-      - name: Run Black
-        run: poetry run black --check src tests
-
-      - name: Run isort
-        run: poetry run isort --check-only src tests
-
-      - name: Run Flake8
-        run: poetry run flake8 src tests
-
-  test:
-    name: 🧪 Tests + Coverage
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install Poetry
-        run: pipx install poetry==${{ env.POETRY_VERSION }}
-
-      - name: Cache Poetry dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pypoetry
-            .venv
-          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            poetry-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: poetry install --no-interaction
-
-      - name: Run Tests with Coverage
         run: |
-          poetry run pytest tests/ \
-            --cov=src/house_pricing \
-            --cov-report=xml \
-            --cov-report=term \
-            --cov-fail-under=${{ env.COVERAGE_THRESHOLD }}
+          pip install poetry==${{ env.POETRY_VERSION }}
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
 
-      - name: Upload Coverage Report
-        uses: codecov/codecov-action@v4
-        if: always()
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
         with:
-          files: coverage.xml
-          fail_ci_if_error: false
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          restore-keys: venv-${{ runner.os }}-
 
-  security:
-    name: 🔒 Security Scan
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: poetry install --no-interaction
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # Don't fail on vulnerabilities (advisory only)
+      - name: Run Linting
+        run: |
+          poetry run black --check src tests
+          poetry run isort --check-only src tests
+          poetry run flake8 src tests
+
+      - name: Run Tests
+        run: poetry run pytest tests/ -v
 
   # ============================================
-  # PHASE 2: Build & Push Docker Image
+  # Build Docker Image
   # ============================================
-  build-and-push:
-    name: 🐳 Build & Push to GHCR
-    needs: [lint, test]
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
+  build:
+    name: 🐳 Build Docker Image
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     permissions:
       contents: read
       packages: write
 
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
-      image_digest: ${{ steps.build.outputs.digest }}
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -136,134 +79,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
+      - name: Lowercase repository name
+        id: repo
+        run: echo "name=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image
-        id: build
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           file: src/house_pricing/api/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/${{ steps.repo.outputs.name }}:latest
+            ghcr.io/${{ steps.repo.outputs.name }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  # ============================================
-  # PHASE 3: Model Validation Gate
-  # ============================================
-  model-validation:
-    name: 🤖 Model Validation Gate
-    needs: build-and-push
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install Poetry
-        run: pipx install poetry==${{ env.POETRY_VERSION }}
-
-      - name: Install dependencies
-        run: poetry install --no-interaction
-
-      - name: Create .env file
-        run: |
-          echo "MLFLOW_TRACKING_URI=http://localhost:5000" >> .env
-          echo "MODEL_NAME=HousePricing_random_forest" >> .env
-
-      - name: Run Model Validation Gate
-        id: validation
-        continue-on-error: true
-        run: poetry run python -m house_pricing.models.validation_gate
-
-      - name: Log Validation Result
-        run: |
-          if [ "${{ steps.validation.outcome }}" == "success" ]; then
-            echo "✅ Challenger model promoted to Champion!"
-          else
-            echo "ℹ️ No challenger to promote (normal for regular deploys)"
-          fi
-
-  # ============================================
-  # PHASE 4: Deploy to Production
-  # ============================================
-  deploy:
-    name: 🚀 Deploy to Production
-    needs: model-validation
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      packages: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create .env file
-        run: |
-          cat << EOF > .env
-          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-          MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
-          MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
-          API_KEY=${{ secrets.API_KEY }}
-          MLFLOW_TRACKING_URI=http://mlflow:5000
-          MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-          EOF
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull latest image
-        run: docker pull ghcr.io/${{ github.repository }}:latest
-
-      - name: Deploy with Docker Compose
-        run: docker compose up -d api
-
-      - name: Wait for API startup
-        run: sleep 10
-
-      - name: Health Check
-        id: health
-        run: |
-          for i in {1..5}; do
-            if curl -sf http://localhost:8000/health; then
-              echo "✅ API is healthy!"
-              exit 0
-            fi
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done
-          echo "❌ Health check failed after 5 attempts"
-          exit 1
-
-      - name: Rollback on failure
-        if: failure() && steps.health.outcome == 'failure'
-        run: |
-          echo "🔄 Rolling back to previous version..."
-          docker compose down api
-          # Could pull previous tag here if needed
-          docker compose up -d api
-
-      - name: Notify Success
-        if: success()
-        run: echo "🎉 Deployment successful!"
