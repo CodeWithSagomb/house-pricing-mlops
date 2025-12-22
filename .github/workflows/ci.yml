@@ -16,7 +16,7 @@ jobs:
   # ============================================
   ci:
     name: 🧪 CI (Lint + Test)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
@@ -58,7 +58,7 @@ jobs:
   build:
     name: 🐳 Build Docker Image
     needs: ci
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     permissions:
