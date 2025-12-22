@@ -1,8 +1,8 @@
-# 🏠 House Pricing MLOps Project
+#  House Pricing MLOps Project
 
 **Production-grade ML API** pour prédire les prix immobiliers (California Housing Dataset).
 
-## 🚀 Features
+## Features
 
 ### API Enterprise
 - ✅ FastAPI avec Swagger UI interactif
@@ -30,7 +30,7 @@
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 # Cloner et installer
@@ -41,7 +41,7 @@ make install
 
 ---
 
-## 🚀 Démarrage Rapide
+## Démarrage Rapide
 
 ### Option 1: Full Docker (Production-like)
 
@@ -66,11 +66,11 @@ make api-run
 
 ---
 
-## 🔗 Services URLs
+## Services URLs
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| 📖 **API Docs** | http://localhost:8000/docs | API_KEY: `dev-secret-key` |
+| 📖 **API Docs** | http://localhost:8000/docs | API_KEY: `` |
 | 🧪 **MLflow** | http://localhost:5000 | - |
 | 💾 **MinIO** | http://localhost:9001 | admin / password |
 | 📊 **Prometheus** | http://localhost:9090 | - |
@@ -78,7 +78,7 @@ make api-run
 
 ---
 
-## 🏃 Commandes Principales
+## Commandes Principales
 
 ```bash
 # Développement
@@ -101,7 +101,7 @@ make promote        # Promouvoir modèle en @champion
 
 ---
 
-## 🧪 Tester l'API
+## Tester l'API
 
 ```bash
 # Health check
@@ -134,7 +134,7 @@ curl -X POST http://localhost:8000/predict/batch \
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -164,7 +164,7 @@ curl -X POST http://localhost:8000/predict/batch \
 
 ---
 
-## 📁 Structure du Projet
+## Structure du Projet
 
 ```
 house-pricing-mlops/
@@ -184,6 +184,6 @@ house-pricing-mlops/
 
 ---
 
-## 📄 License
+## License
 
 MIT License
