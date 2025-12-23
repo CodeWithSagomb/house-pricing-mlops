@@ -186,25 +186,33 @@ jobs:
           docker compose up -d postgres minio
           sleep 15
 
-      - name: Build and start MLflow
+      - name: Build MLflow image
         run: |
-          echo "Building MLflow image (first time may take a few minutes)..."
+          echo "Building MLflow image (this takes 3-5 minutes first time)..."
           docker compose build mlflow
+          echo "MLflow image built successfully!"
+
+      - name: Start MLflow
+        run: |
           echo "Starting MLflow..."
           docker compose up -d mlflow
+          echo "Waiting 60s for MLflow to start..."
+          sleep 60
 
-          echo "Waiting for MLflow to be healthy (up to 3 min)..."
-          for i in {1..18}; do
+      - name: Wait for MLflow health
+        run: |
+          echo "Checking MLflow health (up to 5 min)..."
+          for i in {1..30}; do
             if curl -sf http://localhost:5000/health > /dev/null 2>&1; then
               echo "MLflow is healthy!"
-              break
+              exit 0
             fi
-            echo "Attempt $i/18: MLflow not ready, waiting 10s..."
+            echo "Attempt $i/30: MLflow not ready, waiting 10s..."
             sleep 10
           done
-
-          # Final check
-          curl -sf http://localhost:5000/health || (echo "MLflow failed to start!" && exit 1)
+          echo "MLflow failed to become healthy!"
+          docker compose logs mlflow | tail -20
+          exit 1
 
       - name: Check infrastructure status
         run: docker compose ps
