@@ -73,9 +73,9 @@ make api-run
 |---------|-----|-------------|
 | 📖 **API Docs** | http://localhost:8000/docs | API_KEY: `` |
 | 🧪 **MLflow** | http://localhost:5000 | - |
-| 💾 **MinIO** | http://localhost:9001 | admin / password |
+| 💾 **MinIO** | http://localhost:9001 | admin /          |
 | 📊 **Prometheus** | http://localhost:9090 | - |
-| 📈 **Grafana** | http://localhost:3000 | admin / admin |
+| 📈 **Grafana** | http://localhost:3000 | admin /  |
 
 ---
 
@@ -111,7 +111,7 @@ curl http://localhost:8000/health
 # Prédiction
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
-  -H "X-API-KEY: dev-secret-key" \
+  -H "X-API-KEY: " \
   -d '{
     "MedInc": 3.5,
     "HouseAge": 30,
@@ -126,7 +126,7 @@ curl -X POST http://localhost:8000/predict \
 # Batch prediction
 curl -X POST http://localhost:8000/predict/batch \
   -H "Content-Type: application/json" \
-  -H "X-API-KEY: dev-secret-key" \
+  -H "X-API-KEY: " \
   -d '{"predictions": [
     {"MedInc": 3.5, "HouseAge": 30, "AveRooms": 5, "AveBedrms": 1, "Population": 800, "AveOccup": 3, "Latitude": 37.5, "Longitude": -122},
     {"MedInc": 5.2, "HouseAge": 15, "AveRooms": 6, "AveBedrms": 1.2, "Population": 1200, "AveOccup": 2.5, "Latitude": 38.0, "Longitude": -121}
