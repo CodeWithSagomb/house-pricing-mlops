@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 # Conditional Evidently imports (compatibility with v0.7+)
 EVIDENTLY_AVAILABLE = False
 try:
-    from evidently.metric_preset import DataDriftPreset
-    from evidently.report import Report
-    from evidently.utils.data_preprocessing import ColumnMapping
+    # Evidently 0.7.x uses legacy module for the old API
+    from evidently.legacy.metric_preset import DataDriftPreset
+    from evidently.legacy.report import Report
+    from evidently.legacy.utils.data_preprocessing import ColumnMapping
 
     EVIDENTLY_AVAILABLE = True
 except ImportError:
@@ -76,9 +77,11 @@ class DriftDetector:
         self.buffer_size = 100  # Nombre de prédictions avant analyse
 
         # Mapping des colonnes pour Evidently
+        # Note: We only analyze feature drift, not prediction drift
+        # because reference data (train.csv) doesn't have predictions
         self.column_mapping = ColumnMapping(
-            target=target_column,
-            prediction=prediction_column,
+            target=None,  # No target comparison (reference has it, production doesn't)
+            prediction=None,  # No prediction comparison
             numerical_features=[
                 "MedInc",
                 "HouseAge",
@@ -144,47 +147,70 @@ class DriftDetector:
 
         production_df = pd.DataFrame(self.production_buffer)
 
-        # Report de Data Drift
-        data_drift_report = Report(metrics=[DataDriftPreset()])
-        data_drift_report.run(
-            reference_data=self.reference_data,
-            current_data=production_df,
-            column_mapping=self.column_mapping,
+        # Clean data: remove rows with null predictions/targets for Evidently
+        # Evidently fails if prediction column is "partially present"
+        required_cols = [
+            self.prediction_column
+        ] + self.column_mapping.numerical_features
+        production_df = production_df.dropna(
+            subset=[c for c in required_cols if c in production_df.columns]
         )
 
-        # Extraire les résultats
-        drift_results = data_drift_report.as_dict()
-        metrics = drift_results.get("metrics", [])
+        if len(production_df) < 10:
+            logger.warning("⚠️ Pas assez de données valides après nettoyage")
+            self.production_buffer = []
+            return {"status": "insufficient_valid_data"}
 
-        # Chercher le dataset drift share
-        dataset_drift_detected = False
-        drifted_columns = []
+        try:
+            # Report de Data Drift
+            data_drift_report = Report(metrics=[DataDriftPreset()])
+            data_drift_report.run(
+                reference_data=self.reference_data,
+                current_data=production_df,
+                column_mapping=self.column_mapping,
+            )
 
-        for metric in metrics:
-            result = metric.get("result", {})
-            if "share_of_drifted_columns" in result:
-                drift_share = result["share_of_drifted_columns"]
-                dataset_drift_detected = drift_share > 0.3  # >30% colonnes en drift
-            if "drift_by_columns" in result:
-                for col, col_data in result["drift_by_columns"].items():
-                    if col_data.get("drift_detected", False):
-                        drifted_columns.append(col)
+            # Extraire les résultats
+            drift_results = data_drift_report.as_dict()
+            metrics = drift_results.get("metrics", [])
 
-        analysis_result = {
-            "status": "drift_detected" if dataset_drift_detected else "stable",
-            "timestamp": datetime.now().isoformat(),
-            "samples_analyzed": len(self.production_buffer),
-            "drifted_columns": drifted_columns,
-            "drift_detected": dataset_drift_detected,
-        }
+            # Chercher le dataset drift share
+            dataset_drift_detected = False
+            drifted_columns = []
 
-        if dataset_drift_detected:
-            logger.warning(f"🚨 DRIFT DÉTECTÉ! Colonnes: {drifted_columns}")
-        else:
-            logger.info("✅ Pas de drift significatif détecté.")
+            for metric in metrics:
+                result = metric.get("result", {})
+                if "share_of_drifted_columns" in result:
+                    drift_share = result["share_of_drifted_columns"]
+                    dataset_drift_detected = drift_share > 0.3  # >30% colonnes en drift
+                if "drift_by_columns" in result:
+                    for col, col_data in result["drift_by_columns"].items():
+                        if col_data.get("drift_detected", False):
+                            drifted_columns.append(col)
 
-        # Optionnel: sauvegarder le rapport HTML
-        self._save_report(data_drift_report)
+            analysis_result = {
+                "status": "drift_detected" if dataset_drift_detected else "stable",
+                "timestamp": datetime.now().isoformat(),
+                "samples_analyzed": len(self.production_buffer),
+                "drifted_columns": drifted_columns,
+                "drift_detected": dataset_drift_detected,
+            }
+
+            if dataset_drift_detected:
+                logger.warning(f"🚨 DRIFT DÉTECTÉ! Colonnes: {drifted_columns}")
+            else:
+                logger.info("✅ Pas de drift significatif détecté.")
+
+            # Optionnel: sauvegarder le rapport HTML
+            self._save_report(data_drift_report)
+
+        except Exception as e:
+            logger.error(f"❌ Erreur lors de l'analyse de drift: {e}")
+            analysis_result = {
+                "status": "error",
+                "error": str(e),
+                "samples_analyzed": len(self.production_buffer),
+            }
 
         # Vider le buffer après analyse
         self.production_buffer = []

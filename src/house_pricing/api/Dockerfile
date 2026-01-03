@@ -53,7 +53,7 @@ WORKDIR /app
 # Utilisation de mount=type=cache pour garder le cache pip entre les builds
 COPY --from=builder /tmp/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-deps -r requirements.txt
+    pip install -r requirements.txt
 
 # --- COPIE DU CODE SOURCE ---
 # On copie d'abord la config pour profiter du cache Docker layers si le code change mais pas la config
@@ -76,6 +76,9 @@ ENV PYTHONPATH=/app/src \
 # --- VOLUMES ---
 # Point de montage pour les logs si on veut les persister sur l'hôte
 VOLUME ["/app/logs"]
+
+# Create drift reports directory with proper permissions
+RUN mkdir -p /app/logs/drift_reports && chown -R appuser:appgroup /app/logs
 
 # --- SÉCURITÉ FINAL ---
 USER appuser

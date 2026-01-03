@@ -26,7 +26,8 @@ dependencies = [
     "prometheus-fastapi-instrumentator (>=7.1.0,<8.0.0)",
     "slowapi (>=0.1.9,<0.2.0)",
     "pandera (>=0.27.0,<0.28.0)",
-    "sniffio (>=1.3.1,<2.0.0)"
+    "sniffio (>=1.3.1,<2.0.0)",
+    "evidently (>=0.7.17,<0.8.0)"  # Drift detection
 ]
 
 
@@ -41,7 +42,6 @@ dev = [
     "flake8 (>=7.3.0,<8.0.0)",
     "isort (>=7.0.0,<8.0.0)",
     "httpx (>=0.28.1,<0.29.0)",
-    "evidently (>=0.7.17,<0.8.0)",
     "pre-commit (>=4.5.1,<5.0.0)"
 ]
 

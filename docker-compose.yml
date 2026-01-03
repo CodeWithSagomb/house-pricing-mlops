@@ -110,8 +110,17 @@ services:
       - "8000:8000"
     depends_on:
       - mlflow
+    volumes:
+      - ./data/processed:/app/data/processed:ro # Reference data for drift detection
+      - api_logs:/app/logs # Persist logs and drift reports
     networks:
       - mlops_net
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import http.client; conn = http.client.HTTPConnection('localhost', 8000); conn.request('GET', '/health'); response = conn.getresponse(); exit(0) if response.status == 200 else exit(1)\"" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
 
   # 6. Prometheus - Metrics Collection
   prometheus:
@@ -210,6 +219,8 @@ volumes:
   minio_data:
   prometheus_data:
   grafana_data:
+  api_logs:
+    # Drift reports and API logs
 
     # Réseau interne isolé
 networks:
