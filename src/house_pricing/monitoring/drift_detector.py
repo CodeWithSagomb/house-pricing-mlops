@@ -13,8 +13,36 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+from prometheus_client import Counter, Gauge
 
 logger = logging.getLogger(__name__)
+
+# Prometheus metrics for drift monitoring
+DRIFT_ANALYSIS_TOTAL = Counter(
+    "drift_analysis_total",
+    "Total number of drift analyses performed",
+    ["status"],  # stable, drift_detected, error
+)
+
+DRIFT_DETECTED_TOTAL = Counter(
+    "drift_detected_total",
+    "Total number of times drift was detected",
+)
+
+DRIFT_BUFFER_SIZE = Gauge(
+    "drift_buffer_size",
+    "Current number of samples in the drift buffer",
+)
+
+DRIFT_SHARE = Gauge(
+    "drift_share",
+    "Share of columns that drifted in last analysis (0-1)",
+)
+
+DRIFT_COLUMNS_COUNT = Gauge(
+    "drift_columns_count",
+    "Number of columns with detected drift in last analysis",
+)
 
 # Conditional Evidently imports (compatibility with v0.7+)
 EVIDENTLY_AVAILABLE = False
@@ -123,6 +151,9 @@ class DriftDetector:
         }
         self.production_buffer.append(record)
 
+        # Update Prometheus gauge
+        DRIFT_BUFFER_SIZE.set(len(self.production_buffer))
+
         if len(self.production_buffer) >= self.buffer_size:
             logger.info(
                 f"📊 Buffer plein ({self.buffer_size} samples). Analyse de drift..."
@@ -183,10 +214,15 @@ class DriftDetector:
                 if "share_of_drifted_columns" in result:
                     drift_share = result["share_of_drifted_columns"]
                     dataset_drift_detected = drift_share > 0.3  # >30% colonnes en drift
+                    # Update Prometheus gauge
+                    DRIFT_SHARE.set(drift_share)
                 if "drift_by_columns" in result:
                     for col, col_data in result["drift_by_columns"].items():
                         if col_data.get("drift_detected", False):
                             drifted_columns.append(col)
+
+            # Update Prometheus metrics
+            DRIFT_COLUMNS_COUNT.set(len(drifted_columns))
 
             analysis_result = {
                 "status": "drift_detected" if dataset_drift_detected else "stable",
@@ -198,14 +234,18 @@ class DriftDetector:
 
             if dataset_drift_detected:
                 logger.warning(f"🚨 DRIFT DÉTECTÉ! Colonnes: {drifted_columns}")
+                DRIFT_DETECTED_TOTAL.inc()
+                DRIFT_ANALYSIS_TOTAL.labels(status="drift_detected").inc()
             else:
                 logger.info("✅ Pas de drift significatif détecté.")
+                DRIFT_ANALYSIS_TOTAL.labels(status="stable").inc()
 
             # Optionnel: sauvegarder le rapport HTML
             self._save_report(data_drift_report)
 
         except Exception as e:
             logger.error(f"❌ Erreur lors de l'analyse de drift: {e}")
+            DRIFT_ANALYSIS_TOTAL.labels(status="error").inc()
             analysis_result = {
                 "status": "error",
                 "error": str(e),
@@ -214,6 +254,7 @@ class DriftDetector:
 
         # Vider le buffer après analyse
         self.production_buffer = []
+        DRIFT_BUFFER_SIZE.set(0)
 
         return analysis_result
 
