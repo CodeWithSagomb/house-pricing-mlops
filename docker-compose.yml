@@ -111,7 +111,8 @@ services:
     depends_on:
       - mlflow
     volumes:
-      - ./data/processed:/app/data/processed:ro # Reference data for drift detection
+      - ./data/raw:/app/data/raw:ro # Raw data for drift detection reference
+      - ./data/processed:/app/data/processed:ro # Processed data
       - api_logs:/app/logs # Persist logs and drift reports
     networks:
       - mlops_net

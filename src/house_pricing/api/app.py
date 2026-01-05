@@ -70,13 +70,18 @@ async def lifespan(app: FastAPI):
     try:
         get_model_service().load_artifacts()
 
-        # Initialiser le drift detector avec les données de référence
+        # Initialiser le drift detector avec les données de référence BRUTES
+        # (pas les données standardisées train.csv, sinon drift toujours détecté)
         try:
             import pandas as pd
 
-            reference_data = pd.read_csv("data/processed/train.csv")
+            # Use raw data as reference for drift detection
+            # (production data comes in raw format, not standardized)
+            reference_data = pd.read_csv("data/raw/housing.csv")
             init_drift_detector(reference_data)
-            logger.info("✅ DriftDetector initialisé avec données de référence.")
+            logger.info(
+                "✅ DriftDetector initialisé avec données brutes (housing.csv)."
+            )
         except Exception as e:
             logger.warning(f"⚠️ DriftDetector non initialisé: {e}")
     except Exception as e:
