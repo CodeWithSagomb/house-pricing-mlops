@@ -115,3 +115,19 @@ monitoring-up:
 monitoring-down:
 	docker compose stop prometheus grafana
 	@echo "✅ Monitoring stopped"
+
+# === Airflow Orchestration ===
+
+airflow-up:
+	docker compose up -d airflow-webserver airflow-scheduler
+	@echo ""
+	@echo "✅ Airflow started!"
+	@echo "   🌐 UI: http://localhost:8080 (admin/admin)"
+	@echo "   📋 DAGs: airflow/dags/"
+
+airflow-down:
+	docker compose stop airflow-webserver airflow-scheduler
+	@echo "✅ Airflow stopped"
+
+airflow-logs:
+	docker compose logs -f airflow-scheduler
