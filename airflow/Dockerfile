@@ -43,7 +43,9 @@ RUN pip install --no-cache-dir --user \
     "psycopg2-binary==2.9.9" \
     "mlflow==2.10.1" \
     "gitpython==3.1.40" \
-    "boto3==1.34.0"
+    "boto3==1.34.0" \
+    "requests==2.31.0" \
+    "apache-airflow-providers-http==4.10.0"
 
 # --- Working Directory ---
 WORKDIR /opt/airflow

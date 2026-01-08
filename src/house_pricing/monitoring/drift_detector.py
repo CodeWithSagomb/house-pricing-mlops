@@ -104,6 +104,15 @@ class DriftDetector:
         self.production_buffer: list[dict] = []
         self.buffer_size = 100  # Nombre de prédictions avant analyse
 
+        # Last drift analysis result for API querying
+        self.last_drift_result: dict = {
+            "drift_detected": False,
+            "status": "no_analysis",
+            "timestamp": None,
+            "drifted_columns": [],
+            "samples_analyzed": 0,
+        }
+
         # Mapping des colonnes pour Evidently
         # Note: We only analyze feature drift, not prediction drift
         # because reference data (train.csv) doesn't have predictions
@@ -255,6 +264,9 @@ class DriftDetector:
         # Vider le buffer après analyse
         self.production_buffer = []
         DRIFT_BUFFER_SIZE.set(0)
+
+        # Store result for API querying
+        self.last_drift_result = analysis_result
 
         return analysis_result
 

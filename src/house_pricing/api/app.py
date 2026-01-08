@@ -329,3 +329,25 @@ async def feedback_endpoint(feedback: Feedback, api_key: str = Depends(verify_ap
         "status": "received",
         "drift_analysis": drift_result,
     }
+
+
+@app.get("/monitoring/drift-status", tags=["Infrastructure"])
+async def drift_status():
+    """
+    Returns current drift detection status.
+    Used by Airflow sensor for automatic retraining trigger.
+    """
+    drift_detector = get_drift_detector()
+    if not drift_detector:
+        return {
+            "enabled": False,
+            "drift_detected": False,
+            "status": "drift_monitoring_disabled",
+            "message": "DriftDetector not initialized",
+        }
+
+    result = drift_detector.last_drift_result.copy()
+    result["enabled"] = drift_detector.enabled
+    result["buffer_size"] = len(drift_detector.production_buffer)
+    result["buffer_threshold"] = drift_detector.buffer_size
+    return result
