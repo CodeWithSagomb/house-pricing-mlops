@@ -38,11 +38,12 @@ RUN pip install --no-cache-dir --user \
     "dvc[s3]==3.55.2" \
     "pandas==2.1.4" \
     "scikit-learn==1.3.2" \
-    "pandera==0.18.0" \
-    "multimethod==1.9.1" \
     "pyyaml==6.0.1" \
     "python-dotenv==1.0.0" \
-    "psycopg2-binary==2.9.9"
+    "psycopg2-binary==2.9.9" \
+    "mlflow==2.10.1" \
+    "gitpython==3.1.40" \
+    "boto3==1.34.0"
 
 # --- Working Directory ---
 WORKDIR /opt/airflow
