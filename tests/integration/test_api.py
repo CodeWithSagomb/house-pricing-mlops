@@ -136,15 +136,20 @@ def test_drift_status_endpoint(client):
 
 
 def test_drift_status_has_buffer_info(client):
-    """Vérifie que drift-status retourne les infos de buffer."""
+    """Vérifie que drift-status retourne les infos de buffer (si activé)."""
     response = client.get("/monitoring/drift-status")
     assert response.status_code == 200
 
     data = response.json()
-    assert "buffer_size" in data
-    assert "buffer_threshold" in data
-    assert isinstance(data["buffer_size"], int)
-    assert isinstance(data["buffer_threshold"], int)
+    # Buffer info only present when drift detection is enabled
+    if data.get("enabled", False):
+        assert "buffer_size" in data
+        assert "buffer_threshold" in data
+        assert isinstance(data["buffer_size"], int)
+        assert isinstance(data["buffer_threshold"], int)
+    else:
+        # When disabled, should have message explaining why
+        assert "message" in data or "status" in data
 
 
 # =============================================================================

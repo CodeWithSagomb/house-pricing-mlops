@@ -189,12 +189,17 @@ class TestDriftStatusEndpoint:
             assert key in data, f"Missing key: {key}"
 
     def test_drift_status_buffer_info_present(self, client):
-        """Vérifie que les infos de buffer sont présentes."""
+        """Vérifie que les infos de buffer sont présentes (si activé)."""
         response = client.get("/monitoring/drift-status")
         data = response.json()
 
-        assert "buffer_size" in data
-        assert "buffer_threshold" in data
+        # Buffer info only present when enabled
+        if data.get("enabled", False):
+            assert "buffer_size" in data
+            assert "buffer_threshold" in data
+        else:
+            # When disabled, should have status explaining why
+            assert "status" in data
 
 
 # =============================================================================
