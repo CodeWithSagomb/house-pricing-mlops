@@ -216,7 +216,16 @@ async def predict_endpoint(
     # 2. Calcul du temps de traitement
     process_time = (time.time() - start_time) * 1000
 
-    # 3. Préparation du Log (Tâche de fond)
+    # 3. Drift Monitoring - Add prediction to buffer
+    drift_detector = get_drift_detector()
+    if drift_detector:
+        drift_detector.add_prediction(
+            features=features.model_dump(),
+            prediction=price,
+            true_value=None,  # No ground truth at prediction time
+        )
+
+    # 4. Préparation du Log (Tâche de fond)
     log_entry = PredictionLog(
         timestamp=datetime.datetime.now(),
         inputs=features,
@@ -226,7 +235,7 @@ async def predict_endpoint(
     # On ajoute la tâche à la file d'attente. Elle s'exécutera APRES le return.
     background_tasks.add_task(log_prediction_to_db, log_entry)
 
-    # 4. Réponse immédiate
+    # 5. Réponse immédiate
     return {
         "predicted_price": price,
         "model_version": version,
