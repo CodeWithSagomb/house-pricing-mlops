@@ -1,0 +1,33 @@
+# =============================================================================
+# Traefik Dynamic Configuration
+# =============================================================================
+# Self-signed certificates for local HTTPS
+# =============================================================================
+
+tls:
+  certificates:
+    - certFile: /certs/localhost.crt
+      keyFile: /certs/localhost.key
+
+http:
+  middlewares:
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+    secure-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        frameDeny: true
+
+    api-auth:
+      basicAuth:
+        users:
+          # admin:admin (generate with: htpasswd -nb admin admin)
+          - "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"

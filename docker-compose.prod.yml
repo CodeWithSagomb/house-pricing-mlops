@@ -1,0 +1,95 @@
+# =============================================================================
+# HousePricing MLOps - Production Docker Compose
+# =============================================================================
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+# 1. Generate certificates: ./scripts/generate-certs.sh
+# 2. Copy .env.example to .env and configure
+#
+# Note: In production, direct port exposures are handled by Traefik.
+# Edit docker-compose.yml to remove port mappings if needed.
+# =============================================================================
+
+services:
+  # Traefik Reverse Proxy (HTTPS termination)
+  traefik:
+    image: traefik:v3.0
+    container_name: mlops_traefik
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./certs:/certs:ro
+      - traefik_logs:/var/log/traefik
+    networks:
+      - mlops_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.middlewares=api-auth@file"
+
+  # API - Production overrides
+  api:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.middlewares=rate-limit@file,secure-headers@file"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+
+  # MLflow - Production overrides
+  mlflow:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mlflow.rule=Host(`mlflow.localhost`)"
+      - "traefik.http.routers.mlflow.tls=true"
+      - "traefik.http.routers.mlflow.middlewares=secure-headers@file"
+      - "traefik.http.services.mlflow.loadbalancer.server.port=5000"
+
+  # Airflow Webserver - Production overrides
+  airflow-webserver:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.airflow.rule=Host(`airflow.localhost`)"
+      - "traefik.http.routers.airflow.tls=true"
+      - "traefik.http.routers.airflow.middlewares=secure-headers@file"
+      - "traefik.http.services.airflow.loadbalancer.server.port=8080"
+
+  # Grafana - Production overrides
+  grafana:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  # MinIO Console - Production (internal access only via Traefik)
+  minio:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio-console.rule=Host(`minio.localhost`)"
+      - "traefik.http.routers.minio-console.tls=true"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      # S3 API endpoint
+      - "traefik.http.routers.minio-api.rule=Host(`s3.localhost`)"
+      - "traefik.http.routers.minio-api.tls=true"
+      - "traefik.http.services.minio-api.loadbalancer.server.port=9000"
+
+  # Prometheus - Internal only with auth
+  prometheus:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.routers.prometheus.middlewares=api-auth@file"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
+volumes:
+  traefik_logs:

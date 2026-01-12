@@ -50,3 +50,9 @@ dist/
 .idea/
 .vscode/
 actions-runner/
+
+# Production certificates (auto-generated)
+certs/*.key
+certs/*.crt
+certs/*.pem
+certs/*.csr
