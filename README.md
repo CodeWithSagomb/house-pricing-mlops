@@ -1,189 +1,248 @@
-#  House Pricing MLOps Project
+# House Pricing MLOps
 
-**Production-grade ML API** pour prédire les prix immobiliers (California Housing Dataset).
+Production-grade ML system for California housing price prediction with full MLOps capabilities.
 
-## Features
+## Overview
 
-### API Enterprise
-- ✅ FastAPI avec Swagger UI interactif
-- ✅ Authentification par API Key
-- ✅ Batch predictions (`/predict/batch`)
-- ✅ Hot reload du modèle (`/model/reload`)
-- ✅ Statistiques des données (`/data/stats`)
-
-### MLOps Stack
-- ✅ **MLflow** - Experiment tracking & Model Registry
-- ✅ **DVC** - Data versioning avec MinIO (S3)
-- ✅ **Prometheus + Grafana** - Monitoring temps réel
-- ✅ **PostgreSQL** - Base de données MLflow
-
-### DataOps Pipeline
-- ✅ Architecture modulaire (ingestion → validation → transformation → versioning)
-- ✅ Quality gates automatiques (95% valid data)
-- ✅ Traçabilité complète avec data lineage
-
-### CI/CD
-- ✅ GitHub Actions (lint, test, build, deploy)
-- ✅ Coverage report avec seuil 70%
-- ✅ Security scanning (Trivy)
-- ✅ Auto-rollback on failure
-Push → Lint → Test → Security → Build → Deploy → Notify
-
----
-
-## Installation
-
-```bash
-# Cloner et installer
-git clone https://github.com/yourrepo/house-pricing-mlops.git
-cd house-pricing-mlops
-make install
-```
-
----
-
-## Démarrage Rapide
-
-### Option 1: Full Docker (Production-like)
-
-```bash
-# Démarrer toute l'infrastructure
-docker compose up -d
-
-# Vérifier le status
-docker compose ps
-```
-
-### Option 2: Hybride (Recommandé pour Dev)
-
-```bash
-# Démarrer infrastructure (PostgreSQL, MinIO, MLflow, Prometheus, Grafana)
-make infra-up
-make monitoring-up
-
-# Lancer l'API en local (hot reload)
-make api-run
-```
-
----
-
-## Services URLs
-
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| 📖 **API Docs** | http://localhost:8000/docs | API_KEY: `` |
-| 🧪 **MLflow** | http://localhost:5000 | - |
-| 💾 **MinIO** | http://localhost:9001 | admin /          |
-| 📊 **Prometheus** | http://localhost:9090 | - |
-| 📈 **Grafana** | http://localhost:3000 | admin /  |
-
----
-
-## Commandes Principales
-
-```bash
-# Développement
-make api-run        # API locale (hot reload)
-make test           # Lancer les tests
-make lint           # Vérifier le style
-make format         # Formater le code
-
-# Infrastructure
-make infra-up       # Démarrer PostgreSQL, MinIO, MLflow
-make infra-down     # Arrêter l'infrastructure
-make monitoring-up  # Prometheus + Grafana
-make monitoring-down
-
-# Data & ML Pipeline
-make dataops        # Pipeline DataOps complet
-make train          # Entraîner le modèle
-make promote        # Promouvoir modèle en @champion
-```
-
----
-
-## Tester l'API
-
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# Prédiction
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: " \
-  -d '{
-    "MedInc": 3.5,
-    "HouseAge": 30,
-    "AveRooms": 5,
-    "AveBedrms": 1,
-    "Population": 800,
-    "AveOccup": 3,
-    "Latitude": 37.5,
-    "Longitude": -122
-  }'
-
-# Batch prediction
-curl -X POST http://localhost:8000/predict/batch \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: " \
-  -d '{"predictions": [
-    {"MedInc": 3.5, "HouseAge": 30, "AveRooms": 5, "AveBedrms": 1, "Population": 800, "AveOccup": 3, "Latitude": 37.5, "Longitude": -122},
-    {"MedInc": 5.2, "HouseAge": 15, "AveRooms": 6, "AveBedrms": 1.2, "Population": 1200, "AveOccup": 2.5, "Latitude": 38.0, "Longitude": -121}
-  ]}'
-```
-
----
+This project implements a complete MLOps pipeline including data versioning, model training, serving, monitoring, and automated retraining triggered by data drift detection.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     MONITORING LAYER                         │
-│  Prometheus (9090) ◄── scrape ── API :8000/metrics          │
-│       │                                                      │
-│       ▼                                                      │
-│  Grafana (3000) ── Dashboard "House Pricing API"            │
-└─────────────────────────────────────────────────────────────┘
-         │
-┌────────▼────────────────────────────────────────────────────┐
-│                       API LAYER                              │
-│  /predict    /predict/batch    /model/reload    /data/stats │
-│       │                                                      │
-│       ▼                                                      │
-│  MLflow (5000) ── Model Registry ── MinIO (artifacts)       │
-└─────────────────────────────────────────────────────────────┘
-         │
-┌────────▼────────────────────────────────────────────────────┐
-│                     DATAOPS LAYER                            │
-│  Ingestion → Validation → Transformation → Versioning (DVC) │
-│                    │                                         │
-│                    ▼                                         │
-│              PostgreSQL (data lineage)                       │
-└─────────────────────────────────────────────────────────────┘
+                                    HTTPS (Traefik)
+                                         |
+        +--------------------------------+--------------------------------+
+        |                                |                                |
+   API (8000)                      MLflow (5000)                   Airflow (8081)
+        |                                |                                |
+        +----------------+---------------+                                |
+                         |                                                |
+                   PostgreSQL                                             |
+                         |                                                |
+        +----------------+----------------+                               |
+        |                                 |                               |
+     MinIO (S3)                      Prometheus                           |
+        |                                 |                               |
+   [artifacts]                       Grafana                     [DAGs: DataOps,
+                                                                  Training,
+                                                                  Retraining]
 ```
 
----
+## Components
 
-## Structure du Projet
+| Component | Purpose | Port |
+|-----------|---------|------|
+| API | Model inference, health, metrics | 8000 |
+| MLflow | Experiment tracking, model registry | 5000 |
+| Airflow | Pipeline orchestration | 8081 |
+| PostgreSQL | Metadata storage | 5432 |
+| MinIO | Artifact storage (S3-compatible) | 9000/9001 |
+| Prometheus | Metrics collection | 9090 |
+| Grafana | Visualization | 3000 |
+
+## Quick Start
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Python 3.12+
+- Make
+
+### Development Mode
+
+```bash
+# Clone repository
+git clone https://github.com/CodeWithSagomb/house-pricing-mlops.git
+cd house-pricing-mlops
+
+# Copy environment template
+cp .env.example .env
+
+# Start all services
+docker compose up -d
+
+# Verify services
+docker compose ps
+```
+
+### Production Mode (HTTPS)
+
+```bash
+# Generate self-signed certificates
+./scripts/generate-certs.sh
+
+# Start with Traefik reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+## Service URLs
+
+### Development
+
+| Service | URL |
+|---------|-----|
+| API Docs | http://localhost:8000/docs |
+| MLflow | http://localhost:5000 |
+| Airflow | http://localhost:8081 |
+| Grafana | http://localhost:3000 |
+| MinIO Console | http://localhost:9001 |
+
+### Production (HTTPS)
+
+| Service | URL |
+|---------|-----|
+| API | https://api.localhost |
+| MLflow | https://mlflow.localhost |
+| Airflow | https://airflow.localhost |
+| Grafana | https://grafana.localhost |
+
+## Airflow Pipelines
+
+### DataOps Pipeline
+
+Data ingestion, validation, transformation, and DVC versioning.
+
+```bash
+docker exec mlops_airflow_scheduler airflow dags trigger dataops_pipeline
+```
+
+### Training Pipeline
+
+Model training, evaluation, and MLflow registration.
+
+```bash
+docker exec mlops_airflow_scheduler airflow dags trigger training_pipeline
+```
+
+### Retraining Trigger
+
+Monitors drift status hourly and triggers training when drift is detected.
+
+```bash
+# Runs automatically every hour
+# Manual trigger:
+docker exec mlops_airflow_scheduler airflow dags trigger retraining_trigger
+```
+
+## API Endpoints
+
+### Prediction
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: <your-api-key>" \
+  -d '{
+    "MedInc": 8.3,
+    "HouseAge": 41,
+    "AveRooms": 6.9,
+    "AveBedrms": 1.0,
+    "Population": 322,
+    "AveOccup": 2.5,
+    "Latitude": 37.88,
+    "Longitude": -122.23
+  }'
+```
+
+### Batch Prediction
+
+```bash
+curl -X POST http://localhost:8000/predict/batch \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: <your-api-key>" \
+  -d '{
+    "predictions": [
+      {"MedInc": 8.3, "HouseAge": 41, "AveRooms": 6.9, "AveBedrms": 1.0, "Population": 322, "AveOccup": 2.5, "Latitude": 37.88, "Longitude": -122.23},
+      {"MedInc": 3.5, "HouseAge": 25, "AveRooms": 5.0, "AveBedrms": 1.1, "Population": 1500, "AveOccup": 3.0, "Latitude": 34.05, "Longitude": -118.25}
+    ]
+  }'
+```
+
+### Drift Status
+
+```bash
+curl http://localhost:8000/monitoring/drift-status
+```
+
+### Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+## Monitoring
+
+### Prometheus Metrics
+
+Available at `/metrics`:
+
+- `http_requests_total` - HTTP request count by endpoint
+- `http_request_duration_seconds` - Request latency
+- `drift_detected_total` - Drift detection events
+- `drift_share` - Proportion of columns with drift
+
+### Grafana Dashboards
+
+- ML Model Performance
+- Drift Monitoring
+- API Metrics
+
+## Project Structure
 
 ```
 house-pricing-mlops/
 ├── src/house_pricing/
-│   ├── api/            # FastAPI application
-│   ├── dataops/        # Modular data pipeline
-│   ├── models/         # ML training
-│   └── data/           # Data contracts
+│   ├── api/                 # FastAPI application
+│   ├── dataops/             # Data pipeline modules
+│   ├── models/              # Training logic
+│   └── monitoring/          # Drift detection
+├── airflow/
+│   └── dags/                # Pipeline definitions
+├── traefik/                 # Reverse proxy config
 ├── monitoring/
-│   ├── prometheus/     # Prometheus config
-│   └── grafana/        # Dashboards
-├── tests/              # Unit & integration tests
-├── config/             # YAML configurations
-├── .github/workflows/  # CI/CD pipelines
-└── docker-compose.yml
+│   ├── prometheus/          # Metrics config
+│   └── grafana/             # Dashboards
+├── scripts/                 # Utility scripts
+├── tests/                   # Unit and integration tests
+├── config/                  # YAML configurations
+├── .github/workflows/       # CI/CD pipelines
+├── docker-compose.yml       # Development setup
+└── docker-compose.prod.yml  # Production overlay
 ```
 
----
+## Configuration
+
+Environment variables are documented in `.env.example`. Key variables:
+
+| Variable | Description |
+|----------|-------------|
+| `API_KEY` | API authentication key |
+| `POSTGRES_PASSWORD` | Database password |
+| `MINIO_ROOT_PASSWORD` | Object storage password |
+| `MLFLOW_TRACKING_URI` | MLflow server URL |
+
+## Testing
+
+```bash
+# Run all tests
+make test
+
+# Run with coverage
+pytest --cov=house_pricing tests/
+
+# Integration tests only
+pytest tests/integration/ -v
+```
+
+## CI/CD
+
+GitHub Actions pipeline:
+
+1. **Lint** - Code style (black, flake8, isort)
+2. **Test** - Unit and integration tests
+3. **Security** - Trivy vulnerability scan
+4. **Build** - Docker image
+5. **Deploy** - Push to registry
 
 ## License
 
