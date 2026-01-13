@@ -4,6 +4,7 @@ A/B Testing Module for Model Deployment
 Provides traffic routing between champion and challenger models.
 """
 
+import logging
 import random
 from dataclasses import dataclass
 from typing import Optional
@@ -11,9 +12,8 @@ from typing import Optional
 from prometheus_client import Counter
 
 from house_pricing.api.config import get_settings
-from house_pricing.api.logger import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger("api.ab_testing")
 
 # Prometheus metrics for A/B testing
 AB_PREDICTIONS_TOTAL = Counter(
