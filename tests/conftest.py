@@ -25,13 +25,19 @@ def mock_settings():
 
 @pytest.fixture
 def mock_model_service():
-    """Crée un mock du ModelService pour éviter de charger les vrais modèles."""
+    """Cree un mock du ModelService pour eviter de charger les vrais modeles."""
     mock_service = MagicMock(spec=ModelService)
-    # Par défaut, on simule un modèle chargé
+    # Par defaut, on simule un modele charge
     mock_service.model = MagicMock()
     mock_service.preprocessor = MagicMock()
     mock_service.model_version = "test_v1"
-    # Mock get_metadata for the new endpoint
+
+    # Mock metadata object for ABRouter initialization
+    mock_metadata = MagicMock()
+    mock_metadata.version = "test_v1"
+    mock_service.metadata = mock_metadata
+
+    # Mock get_metadata for the metadata endpoint
     mock_service.get_metadata.return_value = {
         "version": "test_v1",
         "name": "test_model",
@@ -39,6 +45,10 @@ def mock_model_service():
         "run_id": "abc123",
         "loaded_at": "2025-01-01T00:00:00",
     }
+
+    # Mock load_challenger_artifacts for AB testing
+    mock_service.load_challenger_artifacts.return_value = (None, None, None)
+
     return mock_service
 
 
