@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # Paths
     PREPROCESSOR_PATH: str = "data/processed/preprocessor.pkl"
 
+    # A/B Testing
+    AB_TESTING_ENABLED: bool = False
+    AB_TRAFFIC_SPLIT: float = 0.9  # 90% to champion, 10% to challenger
+    AB_CHALLENGER_ALIAS: str = "challenger"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
