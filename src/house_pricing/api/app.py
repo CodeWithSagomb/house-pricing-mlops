@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security.api_key import APIKeyHeader
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from house_pricing.api.ab_testing import get_ab_router, init_ab_router
 from house_pricing.api.config import get_settings
 from house_pricing.api.exceptions import ModelNotLoadedError, PredictionError
 from house_pricing.api.middleware import RequestIDMiddleware, setup_logging
@@ -66,30 +67,49 @@ def log_prediction_to_db(log_entry: PredictionLog):
 # --- LIFESPAN ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Au démarrage : on charge le modèle via le service
+    # Au demarrage : on charge le modele via le service
     try:
-        get_model_service().load_artifacts()
+        service = get_model_service()
+        service.load_artifacts()
 
-        # Initialiser le drift detector avec les données de référence BRUTES
-        # (pas les données standardisées train.csv, sinon drift toujours détecté)
+        # Initialize A/B testing if enabled
+        settings = get_settings()
+        if settings.AB_TESTING_ENABLED:
+            logger.info("A/B Testing enabled, loading challenger model...")
+            challenger_model, challenger_prep, challenger_ver = (
+                service.load_challenger_artifacts(settings.AB_CHALLENGER_ALIAS)
+            )
+            init_ab_router(
+                champion_model=service.model,
+                champion_preprocessor=service.preprocessor,
+                champion_version=service.metadata.version,
+                challenger_model=challenger_model,
+                challenger_preprocessor=challenger_prep,
+                challenger_version=challenger_ver,
+            )
+        else:
+            # Initialize with champion only
+            init_ab_router(
+                champion_model=service.model,
+                champion_preprocessor=service.preprocessor,
+                champion_version=service.metadata.version,
+            )
+
+        # Initialiser le drift detector avec les donnees de reference BRUTES
         try:
             import pandas as pd
 
-            # Use raw data as reference for drift detection
-            # (production data comes in raw format, not standardized)
             reference_data = pd.read_csv("data/raw/housing.csv")
             init_drift_detector(reference_data)
-            logger.info(
-                "✅ DriftDetector initialisé avec données brutes (housing.csv)."
-            )
+            logger.info("DriftDetector initialise avec donnees brutes (housing.csv).")
         except Exception as e:
-            logger.warning(f"⚠️ DriftDetector non initialisé: {e}")
+            logger.warning(f"DriftDetector non initialise: {e}")
     except Exception as e:
-        logger.error(f"Crash au démarrage : {e}")
+        logger.error(f"Crash au demarrage : {e}")
         raise e
     yield
-    # À l'arrêt
-    logger.info("Arrêt de l'API")
+    # A l'arret
+    logger.info("Arret de l'API")
 
 
 # --- OPENAPI TAGS ---
@@ -360,3 +380,13 @@ async def drift_status():
     result["buffer_size"] = len(drift_detector.production_buffer)
     result["buffer_threshold"] = drift_detector.buffer_size
     return result
+
+
+@app.get("/ab/status", tags=["Infrastructure"])
+async def ab_testing_status():
+    """
+    Returns current A/B testing configuration and status.
+    Used for monitoring traffic distribution between champion and challenger.
+    """
+    ab_router = get_ab_router()
+    return ab_router.get_status()

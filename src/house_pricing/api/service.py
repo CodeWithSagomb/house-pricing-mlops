@@ -211,6 +211,44 @@ class ModelService:
         """Return model metadata."""
         return self.metadata.to_dict()
 
+    def load_challenger_artifacts(self, alias: str = "challenger") -> tuple:
+        """
+        Load challenger model for A/B testing.
+
+        Returns:
+            Tuple of (model, preprocessor, version) or (None, None, None) if not found.
+        """
+        settings = get_settings()
+        mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
+        client = mlflow.MlflowClient()
+
+        try:
+            # Try to load challenger by alias
+            mv = client.get_model_version_by_alias(settings.MODEL_NAME, alias)
+            logger.info(f"Loading challenger model @{alias} -> v{mv.version}")
+
+            # Load model
+            model_uri = f"models:/{settings.MODEL_NAME}@{alias}"
+            challenger_model = mlflow.sklearn.load_model(model_uri)
+
+            # Load preprocessor
+            local_path = mlflow.artifacts.download_artifacts(
+                run_id=mv.run_id,
+                artifact_path="preprocessor/preprocessor.pkl",
+                dst_path="/tmp/challenger",
+            )
+            challenger_preprocessor = joblib.load(local_path)
+
+            logger.info(f"Challenger model v{mv.version} loaded successfully.")
+            return challenger_model, challenger_preprocessor, str(mv.version)
+
+        except MlflowException as e:
+            logger.info(f"No challenger model found with alias @{alias}: {e}")
+            return None, None, None
+        except Exception as e:
+            logger.warning(f"Failed to load challenger model: {e}")
+            return None, None, None
+
 
 @lru_cache
 def get_model_service() -> ModelService:
