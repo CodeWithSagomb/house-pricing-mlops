@@ -8,25 +8,7 @@ This project implements a complete MLOps pipeline including data versioning, mod
 
 ## Architecture
 
-```
-                                    HTTPS (Traefik)
-                                         |
-        +--------------------------------+--------------------------------+
-        |                                |                                |
-   API (8000)                      MLflow (5000)                   Airflow (8081)
-        |                                |                                |
-        +----------------+---------------+                                |
-                         |                                                |
-                   PostgreSQL                                             |
-                         |                                                |
-        +----------------+----------------+                               |
-        |                                 |                               |
-     MinIO (S3)                      Prometheus                           |
-        |                                 |                               |
-   [artifacts]                       Grafana                     [DAGs: DataOps,
-                                                                  Training,
-                                                                  Retraining]
-```
+![MLOps Architecture](docs/images/architecture.png)
 
 ## Components
 
