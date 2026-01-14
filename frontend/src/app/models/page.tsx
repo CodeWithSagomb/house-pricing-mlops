@@ -1,53 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getModelMetadata, ModelMetadata, reloadModel } from '@/lib/api';
+import { useModelMetadata, useReloadModel } from '@/lib/hooks/useApi';
+import { useApiKey } from '@/lib/contexts/ApiKeyContext';
+import { Box, Tag, RefreshCw, Key, Clock, GitBranch } from 'lucide-react';
 
 /**
- * Models Page - Model management interface
+ * Models Page - Refactored with React Query
  * Displays model info and allows hot reload
  */
 export default function ModelsPage() {
-    const [model, setModel] = useState<ModelMetadata | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [reloading, setReloading] = useState(false);
-    const [apiKey, setApiKey] = useState('');
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const { data: model, isLoading } = useModelMetadata();
+    const reloadMutation = useReloadModel();
+    const { apiKey, setApiKey, isConfigured } = useApiKey();
 
-    useEffect(() => {
-        fetchModel();
-    }, []);
-
-    async function fetchModel() {
-        try {
-            const data = await getModelMetadata();
-            setModel(data);
-        } catch (err) {
-            console.error('Failed to fetch model');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function handleReload() {
-        if (!apiKey) {
-            setMessage({ type: 'error', text: 'API Key is required' });
-            return;
-        }
-
-        setReloading(true);
-        setMessage(null);
-
-        try {
-            await reloadModel(apiKey);
-            setMessage({ type: 'success', text: 'Model reloaded successfully' });
-            await fetchModel();
-        } catch (err) {
-            setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Reload failed' });
-        } finally {
-            setReloading(false);
-        }
-    }
+    const handleReload = () => {
+        if (!isConfigured) return;
+        reloadMutation.mutate(apiKey);
+    };
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -67,7 +36,7 @@ export default function ModelsPage() {
                     Active Model
                 </h2>
 
-                {loading ? (
+                {isLoading ? (
                     <div className="space-y-3">
                         {[1, 2, 3].map((i) => (
                             <div key={i} className="h-6 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
@@ -77,17 +46,18 @@ export default function ModelsPage() {
                     <div className="space-y-4">
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-xl flex items-center justify-center">
-                                <span className="text-2xl">🤖</span>
+                                <Box className="w-8 h-8 text-primary-600 dark:text-primary-400" />
                             </div>
                             <div>
                                 <p className="text-xl font-bold text-slate-900 dark:text-white">
                                     {model.model_name}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-sm rounded">
+                                    <span className="px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-sm rounded font-medium">
                                         v{model.version}
                                     </span>
-                                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm rounded">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm rounded">
+                                        <Tag className="w-3 h-3" />
                                         @{model.configured_alias}
                                     </span>
                                 </div>
@@ -95,9 +65,12 @@ export default function ModelsPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                            <div>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Source</p>
-                                <p className="font-medium text-slate-900 dark:text-white">{model.source}</p>
+                            <div className="flex items-start gap-2">
+                                <GitBranch className="w-4 h-4 text-slate-400 mt-0.5" />
+                                <div>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Source</p>
+                                    <p className="font-medium text-slate-900 dark:text-white">{model.source}</p>
+                                </div>
                             </div>
                             <div>
                                 <p className="text-sm text-slate-500 dark:text-slate-400">Run ID</p>
@@ -105,11 +78,14 @@ export default function ModelsPage() {
                                     {model.run_id?.slice(0, 16)}...
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Loaded At</p>
-                                <p className="font-medium text-slate-900 dark:text-white">
-                                    {model.loaded_at ? new Date(model.loaded_at).toLocaleString() : 'N/A'}
-                                </p>
+                            <div className="flex items-start gap-2 col-span-2">
+                                <Clock className="w-4 h-4 text-slate-400 mt-0.5" />
+                                <div>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Loaded At</p>
+                                    <p className="font-medium text-slate-900 dark:text-white">
+                                        {model.loaded_at ? new Date(model.loaded_at).toLocaleString() : 'N/A'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -120,35 +96,40 @@ export default function ModelsPage() {
 
             {/* Reload Model */}
             <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">
                     Hot Reload
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                     Reload the model from MLflow without restarting the API server.
                 </p>
 
-                <div className="flex gap-4">
-                    <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="API Key"
-                        className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
+                <div className="space-y-4">
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <Key className="w-4 h-4" />
+                            API Key
+                        </label>
+                        <input
+                            type="password"
+                            value={apiKey}
+                            onChange={(e) => setApiKey(e.target.value)}
+                            placeholder="Enter your API key"
+                            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        />
+                        {isConfigured && (
+                            <p className="text-xs text-emerald-500 mt-1">✓ API key saved</p>
+                        )}
+                    </div>
+
                     <button
                         onClick={handleReload}
-                        disabled={reloading}
-                        className="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-400 text-white font-medium rounded-lg transition-colors"
+                        disabled={reloadMutation.isPending || !isConfigured}
+                        className="inline-flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-400 text-white font-medium rounded-lg transition-colors"
                     >
-                        {reloading ? 'Reloading...' : 'Reload Model'}
+                        <RefreshCw className={`w-4 h-4 ${reloadMutation.isPending ? 'animate-spin' : ''}`} />
+                        {reloadMutation.isPending ? 'Reloading...' : 'Reload Model'}
                     </button>
                 </div>
-
-                {message && (
-                    <p className={`mt-4 text-sm ${message.type === 'success' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {message.text}
-                    </p>
-                )}
             </div>
         </div>
     );

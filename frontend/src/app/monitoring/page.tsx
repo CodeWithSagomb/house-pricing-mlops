@@ -1,37 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getDriftStatus, DriftStatus, getModelMetadata, ModelMetadata } from '@/lib/api';
+import { useDriftStatus, useModelMetadata } from '@/lib/hooks/useApi';
+import { TrendingUp, AlertTriangle, CheckCircle, BarChart3, Box, Clock } from 'lucide-react';
 
 /**
- * Monitoring Page - Real-time system monitoring
+ * Monitoring Page - Refactored with React Query
  * Displays drift status, buffer progress, and alerts
  */
 export default function MonitoringPage() {
-    const [drift, setDrift] = useState<DriftStatus | null>(null);
-    const [model, setModel] = useState<ModelMetadata | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { data: drift, isLoading: driftLoading } = useDriftStatus();
+    const { data: model, isLoading: modelLoading } = useModelMetadata();
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const [driftData, modelData] = await Promise.all([
-                    getDriftStatus(),
-                    getModelMetadata(),
-                ]);
-                setDrift(driftData);
-                setModel(modelData);
-            } catch (err) {
-                console.error('Failed to fetch monitoring data');
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        fetchData();
-        const interval = setInterval(fetchData, 5000); // Refresh every 5s
-        return () => clearInterval(interval);
-    }, []);
+    const loading = driftLoading || modelLoading;
 
     const bufferProgress = drift
         ? Math.round((drift.buffer_size / drift.buffer_threshold) * 100)
@@ -62,21 +42,25 @@ export default function MonitoringPage() {
                         <StatCard
                             label="Drift Status"
                             value={drift?.drift_detected ? 'DETECTED' : 'STABLE'}
+                            icon={drift?.drift_detected ? AlertTriangle : CheckCircle}
                             color={drift?.drift_detected ? 'rose' : 'emerald'}
                         />
                         <StatCard
                             label="Buffer Size"
                             value={`${drift?.buffer_size || 0} / ${drift?.buffer_threshold || 100}`}
+                            icon={BarChart3}
                             color="primary"
                         />
                         <StatCard
                             label="Samples Analyzed"
                             value={String(drift?.samples_analyzed || 0)}
+                            icon={TrendingUp}
                             color="slate"
                         />
                         <StatCard
                             label="Model Version"
                             value={`v${model?.version || 'N/A'}`}
+                            icon={Box}
                             color="primary"
                         />
                     </div>
@@ -114,9 +98,12 @@ export default function MonitoringPage() {
                     {/* Drifted Columns */}
                     {drift?.drifted_columns && drift.drifted_columns.length > 0 && (
                         <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-6 border border-rose-200 dark:border-rose-800">
-                            <h2 className="text-lg font-semibold text-rose-800 dark:text-rose-200 mb-4">
-                                Drifted Columns
-                            </h2>
+                            <div className="flex items-center gap-2 mb-4">
+                                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                                <h2 className="text-lg font-semibold text-rose-800 dark:text-rose-200">
+                                    Drifted Columns
+                                </h2>
+                            </div>
                             <div className="flex flex-wrap gap-2">
                                 {drift.drifted_columns.map((col) => (
                                     <span
@@ -148,11 +135,14 @@ export default function MonitoringPage() {
                                 <p className="text-slate-500 dark:text-slate-400">Source</p>
                                 <p className="font-medium text-slate-900 dark:text-white">{model?.source}</p>
                             </div>
-                            <div>
-                                <p className="text-slate-500 dark:text-slate-400">Loaded At</p>
-                                <p className="font-medium text-slate-900 dark:text-white">
-                                    {model?.loaded_at ? new Date(model.loaded_at).toLocaleString() : 'N/A'}
-                                </p>
+                            <div className="flex items-start gap-2">
+                                <Clock className="w-4 h-4 text-slate-400 mt-0.5" />
+                                <div>
+                                    <p className="text-slate-500 dark:text-slate-400">Loaded At</p>
+                                    <p className="font-medium text-slate-900 dark:text-white">
+                                        {model?.loaded_at ? new Date(model.loaded_at).toLocaleString() : 'N/A'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -162,14 +152,16 @@ export default function MonitoringPage() {
     );
 }
 
-// Stat Card Component - Reusable (DRY principle)
+// Stat Card Component - Reusable
 function StatCard({
     label,
     value,
+    icon: Icon,
     color,
 }: {
     label: string;
     value: string;
+    icon: React.ElementType;
     color: 'emerald' | 'rose' | 'primary' | 'slate' | 'amber';
 }) {
     const colorClasses = {
@@ -182,8 +174,11 @@ function StatCard({
 
     return (
         <div className={`rounded-xl p-4 ${colorClasses[color]}`}>
-            <p className="text-sm opacity-75">{label}</p>
-            <p className="text-xl font-bold mt-1">{value}</p>
+            <div className="flex items-center gap-2 mb-1">
+                <Icon className="w-4 h-4 opacity-70" />
+                <p className="text-sm opacity-75">{label}</p>
+            </div>
+            <p className="text-xl font-bold">{value}</p>
         </div>
     );
 }

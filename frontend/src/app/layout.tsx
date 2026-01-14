@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { Providers } from '@/components/Providers';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
     title: 'MLOps Dashboard',
@@ -13,14 +15,18 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body className="antialiased">
-                <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
-                    <Sidebar />
-                    <main className="flex-1 overflow-auto p-6">
-                        {children}
-                    </main>
-                </div>
+                <Providers>
+                    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+                        <Sidebar />
+                        <main className="flex-1 overflow-auto p-6">
+                            <ErrorBoundary>
+                                {children}
+                            </ErrorBoundary>
+                        </main>
+                    </div>
+                </Providers>
             </body>
         </html>
     );

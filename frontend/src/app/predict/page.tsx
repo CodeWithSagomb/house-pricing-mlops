@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { predict, PredictionInput, PredictionResult } from '@/lib/api';
+import { usePredict } from '@/lib/hooks/useApi';
+import { useApiKey } from '@/lib/contexts/ApiKeyContext';
+import { PredictionInput } from '@/lib/api';
+import { Send, Key, DollarSign, Info } from 'lucide-react';
 
 /**
  * Prediction Page - Full prediction interface
- * Allows detailed feature input and displays comprehensive results
+ * Uses API key context and React Query mutation
  */
 export default function PredictPage() {
-    const [apiKey, setApiKey] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<PredictionResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const { apiKey, setApiKey, isConfigured } = useApiKey();
+    const predictMutation = usePredict();
 
     const [input, setInput] = useState<PredictionInput>({
         MedInc: 8.3,
@@ -37,22 +38,8 @@ export default function PredictPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!apiKey) {
-            setError('API Key is required');
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const data = await predict(input, apiKey);
-            setResult(data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Prediction failed');
-        } finally {
-            setLoading(false);
-        }
+        if (!isConfigured) return;
+        predictMutation.mutate({ input, apiKey });
     };
 
     const handleInputChange = (field: keyof PredictionInput, value: string) => {
@@ -80,16 +67,20 @@ export default function PredictPage() {
                     <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                         {/* API Key */}
                         <div className="mb-6">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                <Key className="w-4 h-4" />
                                 API Key
                             </label>
                             <input
                                 type="password"
                                 value={apiKey}
                                 onChange={(e) => setApiKey(e.target.value)}
-                                placeholder="Enter your API key"
+                                placeholder="Enter your API key (saved locally)"
                                 className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
+                            {isConfigured && (
+                                <p className="text-xs text-emerald-500 mt-1">✓ API key saved</p>
+                            )}
                         </div>
 
                         {/* Features grid */}
@@ -97,8 +88,9 @@ export default function PredictPage() {
                             {(Object.keys(input) as Array<keyof PredictionInput>).map((key) => (
                                 <div key={key} className="grid grid-cols-3 gap-4 items-center">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <label className="flex items-center gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">
                                             {key}
+                                            <Info className="w-3 h-3 text-slate-400" />
                                         </label>
                                         <p className="text-xs text-slate-400 dark:text-slate-500">
                                             {featureDescriptions[key]}
@@ -120,15 +112,12 @@ export default function PredictPage() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="mt-6 w-full py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-400 text-white font-medium rounded-lg transition-colors"
+                            disabled={predictMutation.isPending || !isConfigured}
+                            className="mt-6 w-full inline-flex items-center justify-center gap-2 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-400 text-white font-medium rounded-lg transition-colors"
                         >
-                            {loading ? 'Predicting...' : 'Get Prediction'}
+                            <Send className="w-4 h-4" />
+                            {predictMutation.isPending ? 'Predicting...' : 'Get Prediction'}
                         </button>
-
-                        {error && (
-                            <p className="mt-4 text-rose-500 text-sm">{error}</p>
-                        )}
                     </form>
                 </div>
 
@@ -139,25 +128,33 @@ export default function PredictPage() {
                             Prediction Result
                         </h2>
 
-                        {result ? (
+                        {predictMutation.isSuccess && predictMutation.data ? (
                             <div className="space-y-4">
                                 <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                                    <p className="text-sm text-emerald-600 dark:text-emerald-400">Estimated Price</p>
-                                    <p className="text-4xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">
-                                        ${(result.predicted_price * 100000).toLocaleString()}
+                                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
+                                        <DollarSign className="w-4 h-4" />
+                                        <span className="text-sm">Estimated Price</span>
+                                    </div>
+                                    <p className="text-4xl font-bold text-emerald-700 dark:text-emerald-300">
+                                        ${(predictMutation.data.predicted_price * 100000).toLocaleString()}
                                     </p>
                                 </div>
 
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-slate-500 dark:text-slate-400">Model Version</span>
-                                        <span className="text-slate-900 dark:text-white font-medium">v{result.model_version}</span>
+                                        <span className="text-slate-900 dark:text-white font-medium">v{predictMutation.data.model_version}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500 dark:text-slate-400">Processing Time</span>
-                                        <span className="text-slate-900 dark:text-white font-medium">{result.processing_time_ms.toFixed(1)}ms</span>
+                                        <span className="text-slate-900 dark:text-white font-medium">{predictMutation.data.processing_time_ms.toFixed(1)}ms</span>
                                     </div>
                                 </div>
+                            </div>
+                        ) : predictMutation.isPending ? (
+                            <div className="space-y-3">
+                                <div className="h-20 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+                                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                             </div>
                         ) : (
                             <p className="text-slate-400 dark:text-slate-500 text-sm">

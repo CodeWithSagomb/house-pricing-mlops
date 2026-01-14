@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { predict, PredictionInput, PredictionResult } from '@/lib/api';
+import { usePredict } from '@/lib/hooks/useApi';
+import { useApiKey } from '@/lib/contexts/ApiKeyContext';
+import { Send, Key, DollarSign } from 'lucide-react';
+import { PredictionInput } from '@/lib/api';
 
 /**
- * QuickPredict Component - Single Responsibility
- * Handles quick prediction form with minimal fields
+ * QuickPredict Component - Refactored
+ * Uses API Key context and React Query mutation
  */
 export function QuickPredict() {
-    const [apiKey, setApiKey] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<PredictionResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const { apiKey, setApiKey, isConfigured } = useApiKey();
+    const predictMutation = usePredict();
 
     // Default values for California housing features
     const [input, setInput] = useState<PredictionInput>({
@@ -27,22 +28,8 @@ export function QuickPredict() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!apiKey) {
-            setError('API Key is required');
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const data = await predict(input, apiKey);
-            setResult(data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Prediction failed');
-        } finally {
-            setLoading(false);
-        }
+        if (!isConfigured) return;
+        predictMutation.mutate({ input, apiKey });
     };
 
     const handleInputChange = (field: keyof PredictionInput, value: string) => {
@@ -57,16 +44,20 @@ export function QuickPredict() {
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* API Key */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        <Key className="w-4 h-4" />
                         API Key
                     </label>
                     <input
                         type="password"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="Enter your API key"
+                        placeholder="Enter your API key (saved locally)"
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
+                    {isConfigured && (
+                        <p className="text-xs text-emerald-500 mt-1">✓ API key saved</p>
+                    )}
                 </div>
 
                 {/* Feature inputs grid */}
@@ -90,26 +81,25 @@ export function QuickPredict() {
                 {/* Submit button */}
                 <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full md:w-auto px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-400 text-white font-medium rounded-lg transition-colors"
+                    disabled={predictMutation.isPending || !isConfigured}
+                    className="inline-flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-400 text-white font-medium rounded-lg transition-colors"
                 >
-                    {loading ? 'Predicting...' : 'Predict Price'}
+                    <Send className="w-4 h-4" />
+                    {predictMutation.isPending ? 'Predicting...' : 'Predict Price'}
                 </button>
 
-                {/* Error message */}
-                {error && (
-                    <p className="text-rose-500 text-sm">{error}</p>
-                )}
-
                 {/* Result */}
-                {result && (
+                {predictMutation.isSuccess && predictMutation.data && (
                     <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        <p className="text-sm text-emerald-600 dark:text-emerald-400">Prediction Result</p>
-                        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">
-                            ${(result.predicted_price * 100000).toLocaleString()}
+                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
+                            <DollarSign className="w-4 h-4" />
+                            <span className="text-sm">Prediction Result</span>
+                        </div>
+                        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+                            ${(predictMutation.data.predicted_price * 100000).toLocaleString()}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                            Model v{result.model_version} | {result.processing_time_ms.toFixed(1)}ms
+                            Model v{predictMutation.data.model_version} | {predictMutation.data.processing_time_ms.toFixed(1)}ms
                         </p>
                     </div>
                 )}

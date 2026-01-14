@@ -1,34 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getHealth, HealthStatus } from '@/lib/api';
+import { useHealth } from '@/lib/hooks/useApi';
+import { Activity, AlertCircle } from 'lucide-react';
 
 /**
- * HealthCard Component - Single Responsibility
- * Displays system health status with auto-refresh
+ * HealthCard Component - Refactored
+ * Uses React Query for automatic caching and refresh
  */
 export function HealthCard() {
-    const [health, setHealth] = useState<HealthStatus | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        async function fetchHealth() {
-            try {
-                const data = await getHealth();
-                setHealth(data);
-                setError(null);
-            } catch (err) {
-                setError('Failed to fetch health status');
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        fetchHealth();
-        const interval = setInterval(fetchHealth, 30000); // Refresh every 30s
-        return () => clearInterval(interval);
-    }, []);
+    const { data: health, isLoading, isError, error } = useHealth();
 
     const isHealthy = health?.status === 'ok';
 
@@ -38,7 +18,7 @@ export function HealthCard() {
                 <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     System Health
                 </h3>
-                {loading ? (
+                {isLoading ? (
                     <div className="w-3 h-3 rounded-full bg-slate-300 animate-pulse" />
                 ) : (
                     <div
@@ -48,18 +28,24 @@ export function HealthCard() {
                 )}
             </div>
 
-            {error ? (
-                <p className="text-rose-500 text-sm">{error}</p>
-            ) : loading ? (
+            {isError ? (
+                <div className="flex items-center gap-2 text-rose-500">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-sm">{(error as Error)?.message || 'Connection failed'}</span>
+                </div>
+            ) : isLoading ? (
                 <div className="space-y-2">
                     <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                     <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3 animate-pulse" />
                 </div>
             ) : (
                 <>
-                    <p className={`text-2xl font-bold ${isHealthy ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {isHealthy ? 'Operational' : 'Degraded'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <Activity className={`w-6 h-6 ${isHealthy ? 'text-emerald-500' : 'text-rose-500'}`} />
+                        <p className={`text-2xl font-bold ${isHealthy ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {isHealthy ? 'Operational' : 'Degraded'}
+                        </p>
+                    </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
                         Model v{health?.model_version || 'N/A'}
                     </p>
