@@ -2,6 +2,7 @@
 
 import { useDriftStatus, useModelMetadata } from '@/lib/hooks/useApi';
 import { TrendingUp, AlertTriangle, CheckCircle, BarChart3, Box, Clock } from 'lucide-react';
+import { DriftChart } from '@/components/charts/DriftChart';
 
 /**
  * Monitoring Page - Refactored with React Query
@@ -80,14 +81,19 @@ export default function MonitoringPage() {
                             <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                 <div
                                     className={`h-full transition-all duration-500 ${bufferProgress >= 100
-                                            ? 'bg-emerald-500'
-                                            : bufferProgress >= 75
-                                                ? 'bg-amber-500'
-                                                : 'bg-primary-500'
+                                        ? 'bg-emerald-500'
+                                        : bufferProgress >= 75
+                                            ? 'bg-amber-500'
+                                            : 'bg-primary-500'
                                         }`}
                                     style={{ width: `${Math.min(bufferProgress, 100)}%` }}
                                 />
                             </div>
+
+                            <DriftChart
+                                bufferSize={drift?.buffer_size || 0}
+                                threshold={drift?.buffer_threshold || 100}
+                            />
 
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 {drift?.buffer_size || 0} predictions collected. Analysis triggers at {drift?.buffer_threshold || 100} samples.
