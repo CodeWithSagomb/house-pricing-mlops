@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'sonner';
 import { useState } from 'react';
 import { ApiKeyProvider } from '@/lib/contexts/ApiKeyContext';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 /**
  * Providers Component - Dependency Inversion Principle
@@ -28,17 +29,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     );
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ApiKeyProvider>
-                {children}
-                <Toaster
-                    position="top-right"
-                    richColors
-                    closeButton
-                    theme="system"
-                />
-            </ApiKeyProvider>
-            <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
+        <ThemeProvider>
+            <QueryClientProvider client={queryClient}>
+                <ApiKeyProvider>
+                    {children}
+                    <Toaster
+                        position="top-right"
+                        richColors
+                        closeButton
+                        theme="system"
+                    />
+                </ApiKeyProvider>
+                <ReactQueryDevtools initialIsOpen={false} />
+            </QueryClientProvider>
+        </ThemeProvider>
     );
 }

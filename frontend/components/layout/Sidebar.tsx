@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Target, BarChart3, Box, Settings } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 /**
  * Navigation items - Open/Closed Principle
@@ -44,8 +45,8 @@ export function Sidebar() {
                                 <Link
                                     href={item.href}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                            ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
-                                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                        ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
+                                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                                         }`}
                                 >
                                     <Icon className="w-5 h-5" />
@@ -58,7 +59,8 @@ export function Sidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                <ThemeToggle />
                 <Link
                     href="/settings"
                     className="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
@@ -66,7 +68,7 @@ export function Sidebar() {
                     <Settings className="w-4 h-4" />
                     <span className="text-sm">Settings</span>
                 </Link>
-                <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-2">
+                <p className="text-xs text-slate-400 dark:text-slate-500 text-center">
                     v1.0.0 | MLOps Platform
                 </p>
             </div>
