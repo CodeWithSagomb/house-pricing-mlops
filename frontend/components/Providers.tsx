@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'sonner';
 import { useState } from 'react';
 import { ApiKeyProvider } from '@/lib/contexts/ApiKeyContext';
+import { HistoryProvider } from '@/lib/contexts/HistoryContext';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 /**
@@ -32,13 +33,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ThemeProvider>
             <QueryClientProvider client={queryClient}>
                 <ApiKeyProvider>
-                    {children}
-                    <Toaster
-                        position="top-right"
-                        richColors
-                        closeButton
-                        theme="system"
-                    />
+                    <HistoryProvider>
+                        {children}
+                        <Toaster
+                            position="top-right"
+                            richColors
+                            closeButton
+                            theme="system"
+                        />
+                    </HistoryProvider>
                 </ApiKeyProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
             </QueryClientProvider>
