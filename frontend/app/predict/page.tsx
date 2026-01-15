@@ -95,8 +95,8 @@ export default function PredictPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${activeTab === tab.id
-                                    ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm'
-                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                 }`}
                         >
                             <Icon className="w-4 h-4" />
@@ -205,7 +205,7 @@ export default function PredictPage() {
                                 </div>
                             ) : (
                                 <p className="text-slate-400 dark:text-slate-500 text-sm">
-                                    Enter features and click "Get Prediction" to see results
+                                    Enter features and click &quot;Get Prediction&quot; to see results
                                 </p>
                             )}
                         </div>

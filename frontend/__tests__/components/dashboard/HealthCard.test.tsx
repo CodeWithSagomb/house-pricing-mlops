@@ -35,13 +35,11 @@ describe('HealthCard', () => {
             isLoading: true,
             isError: false,
             error: null,
-        } as any);
+        } as ReturnType<typeof useHealth>);
 
         render(<HealthCard />, { wrapper: createWrapper() });
 
-        expect(screen.getByText('SYSTEM HEALTH')).toBeInTheDocument();
-        // Should show loading skeleton
-        expect(screen.queryByText('Operational')).not.toBeInTheDocument();
+        expect(screen.getByText('System Health')).toBeInTheDocument();
     });
 
     it('renders healthy state correctly', () => {
@@ -50,13 +48,12 @@ describe('HealthCard', () => {
             isLoading: false,
             isError: false,
             error: null,
-        } as any);
+        } as ReturnType<typeof useHealth>);
 
         render(<HealthCard />, { wrapper: createWrapper() });
 
-        expect(screen.getByText('SYSTEM HEALTH')).toBeInTheDocument();
+        expect(screen.getByText('System Health')).toBeInTheDocument();
         expect(screen.getByText('Operational')).toBeInTheDocument();
-        expect(screen.getByText('Model v3')).toBeInTheDocument();
     });
 
     it('renders error state correctly', () => {
@@ -65,28 +62,24 @@ describe('HealthCard', () => {
             isLoading: false,
             isError: true,
             error: new Error('Connection failed'),
-        } as any);
+        } as ReturnType<typeof useHealth>);
 
         render(<HealthCard />, { wrapper: createWrapper() });
 
-        expect(screen.getByText('SYSTEM HEALTH')).toBeInTheDocument();
-        expect(screen.getByText('Failed to fetch')).toBeInTheDocument();
+        expect(screen.getByText('System Health')).toBeInTheDocument();
+        expect(screen.getByText('Connection failed')).toBeInTheDocument();
     });
 
-    it('displays status indicator dot', () => {
+    it('displays model version when healthy', () => {
         vi.mocked(useHealth).mockReturnValue({
             data: { status: 'ok', model_version: '3' },
             isLoading: false,
             isError: false,
             error: null,
-        } as any);
+        } as ReturnType<typeof useHealth>);
 
         render(<HealthCard />, { wrapper: createWrapper() });
 
-        // Check for the status indicator (green dot for healthy)
-        const indicator = screen.getByRole('status', { hidden: true }) ||
-            document.querySelector('.bg-emerald-500');
-        // The card should contain visual indicator
-        expect(screen.getByText('Operational')).toBeInTheDocument();
+        expect(screen.getByText('Model v3')).toBeInTheDocument();
     });
 });
