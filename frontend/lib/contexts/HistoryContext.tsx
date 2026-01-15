@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { PredictionInput } from '@/lib/api';
 
 /**
  * Prediction History Context
@@ -10,7 +11,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 export interface HistoryEntry {
     id: string;
     timestamp: string;
-    input: Record<string, number>;
+    input: PredictionInput;
     price: number;
     modelVersion: string;
     processingTime: number;
