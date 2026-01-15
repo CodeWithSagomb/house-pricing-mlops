@@ -116,15 +116,6 @@ Sprint 4 (Orchestration) : Airflow DAGs, Automatisation du dvc repro.
 Sprint 5 (Monitoring) : Prometheus, Grafana, Evidently Drift Detection.
 
 source .venv/bin/activate
-docker compose up -d
-poetry run mlflow ui --backend-store-uri postgresql://mlops:mlops_password@127.0.0.1:5432/mlflow_db --host 0.0.0.0 --port 5000
-
-docker run -d \
-  -p 8000:8000 \
-  -e MLFLOW_TRACKING_URI="http://mlops_minio:9000" \
-  --network host \
-  --name api-prod \
-  house-pricing-api:prod
 
 
 # Démarre Postgres, MinIO et MLflow en arrière-plan
@@ -138,15 +129,3 @@ export RUNNER_ALLOW_RUNASROOT=1
 
 
 ###############################################################
-
-# Exécuter le pipeline DataOps
-PYTHONPATH=src poetry run python -m house_pricing.dataops.pipeline
-
-# Lancer l'entraînement
-PYTHONPATH=src MLFLOW_TRACKING_URI=http://localhost:5000 poetry run python -m house_pricing.models.train
-
-#######################################################################################
-
-✅ Monitoring started!
-   📊 Prometheus: http://localhost:9090
-   📈 Grafana:    http://localhost:3000 (admin/admin)

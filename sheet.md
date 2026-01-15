@@ -20,3 +20,8 @@ histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) * 1000
 
 # PostgreSQL Database Size (MB)
 pg_database_size_bytes / 1024 / 1024
+
+############################################
+cd actions-runner
+export RUNNER_ALLOW_RUNASROOT=1
+./run.sh
