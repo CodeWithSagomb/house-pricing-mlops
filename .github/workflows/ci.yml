@@ -9,13 +9,14 @@ on:
 env:
   PYTHON_VERSION: "3.12"
   POETRY_VERSION: "2.0.0"
+  NODE_VERSION: "20"
 
 jobs:
   # ============================================
-  # STAGE 1: Lint
+  # STAGE 1: Python Lint
   # ============================================
   lint:
-    name: Lint
+    name: Python Lint
     runs-on: self-hosted
 
     steps:
@@ -51,10 +52,40 @@ jobs:
         run: poetry run flake8 src tests
 
   # ============================================
-  # STAGE 2: Test
+  # STAGE 1.5: Frontend Lint
+  # ============================================
+  frontend-lint:
+    name: Frontend Lint
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: TypeScript Check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+  # ============================================
+  # STAGE 2: Python Test
   # ============================================
   test:
-    name: Test
+    name: Python Test
     needs: lint
     runs-on: self-hosted
 
@@ -85,11 +116,47 @@ jobs:
         run: poetry run pytest tests/ -v --tb=short
 
   # ============================================
+  # STAGE 2.5: Frontend Test
+  # ============================================
+  frontend-test:
+    name: Frontend Test
+    needs: frontend-lint
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run tests with coverage
+        working-directory: frontend
+        run: npm run test:ci
+        continue-on-error: false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: frontend/coverage
+          flags: frontend
+          fail_ci_if_error: false
+
+  # ============================================
   # STAGE 3: Security Scan
   # ============================================
   security:
     name: Security
-    needs: test
+    needs: [test, frontend-test]
     runs-on: self-hosted
 
     steps:
@@ -106,10 +173,10 @@ jobs:
           format: 'table'
 
   # ============================================
-  # STAGE 4: Build Docker Image
+  # STAGE 4: Build API Docker Image
   # ============================================
-  build:
-    name: Build
+  build-api:
+    name: Build API
     needs: security
     runs-on: self-hosted
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -155,11 +222,59 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ============================================
+  # STAGE 4.5: Build Frontend Docker Image
+  # ============================================
+  build-frontend:
+    name: Build Frontend
+    needs: security
+    runs-on: self-hosted
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Repository name lowercase
+        id: repo
+        run: echo "name=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.repo.outputs.name }}-frontend
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://api:8000
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
   # STAGE 5: Deploy
   # ============================================
   deploy:
     name: Deploy
-    needs: build
+    needs: [build-api, build-frontend]
     runs-on: self-hosted
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -219,18 +334,20 @@ jobs:
 
       - name: Deploy API
         run: |
-          # Stop API if running
           docker compose stop api || true
-          # Remove old API container
           docker compose rm -f api || true
-          # Start fresh API container
           docker compose up -d --no-deps api
 
-      - name: Wait for API startup
+      - name: Deploy Frontend
+        run: |
+          docker compose stop frontend || true
+          docker compose rm -f frontend || true
+          docker compose up -d --no-deps frontend
+
+      - name: Wait for services startup
         run: sleep 45
 
-      - name: Health check
-        id: health
+      - name: API Health check
         run: |
           for i in 1 2 3 4 5; do
             if curl -sf http://localhost:8000/health; then
@@ -240,7 +357,20 @@ jobs:
             echo "Attempt $i failed, waiting..."
             sleep 5
           done
-          echo "Health check failed"
+          echo "API Health check failed"
+          exit 1
+
+      - name: Frontend Health check
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -sf http://localhost:3001 > /dev/null; then
+              echo "Frontend is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i failed, waiting..."
+            sleep 5
+          done
+          echo "Frontend Health check failed"
           exit 1
 
   # ============================================
@@ -248,7 +378,7 @@ jobs:
   # ============================================
   notify-success:
     name: Notify Success
-    needs: [lint, test, security, build, deploy]
+    needs: [lint, test, frontend-lint, frontend-test, security, build-api, build-frontend, deploy]
     runs-on: self-hosted
     if: success() && github.event_name == 'push'
 
@@ -262,11 +392,16 @@ jobs:
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
           echo "Author: ${{ github.actor }}"
+          echo ""
+          echo "Services:"
+          echo "  - API: http://localhost:8000"
+          echo "  - Frontend: http://localhost:3001"
+          echo "  - MLflow: http://localhost:5000"
           echo "=========================================="
 
   notify-failure:
     name: Notify Failure
-    needs: [lint, test, security, build, deploy]
+    needs: [lint, test, frontend-lint, frontend-test, security, build-api, build-frontend, deploy]
     runs-on: self-hosted
     if: failure()
 
