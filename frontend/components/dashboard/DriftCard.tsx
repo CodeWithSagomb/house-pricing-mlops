@@ -1,11 +1,13 @@
 'use client';
 
 import { useDriftStatus } from '@/lib/hooks/useApi';
-import { TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CheckCircle, Shield } from 'lucide-react';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { ProgressRing, Badge, StatusIndicator } from '@/components/ui/StatusIndicator';
 
 /**
- * DriftCard Component - Refactored
- * Uses React Query for auto-refresh every 10s
+ * DriftCard Component - Premium redesign
+ * Uses circular progress ring for buffer visualization
  */
 export function DriftCard() {
     const { data: drift, isLoading } = useDriftStatus();
@@ -14,36 +16,61 @@ export function DriftCard() {
         ? Math.round((drift.buffer_size / drift.buffer_threshold) * 100)
         : 0;
 
+    const getVariant = () => {
+        if (!drift?.enabled) return 'default';
+        if (drift.drift_detected) return 'danger';
+        return 'success';
+    };
+
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+        <GlassCard
+            variant={getVariant()}
+            glow
+            className="animate-fade-in animate-stagger-2"
+        >
+            {/* Header */}
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Drift Monitor
                 </h3>
                 {drift?.enabled && (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${drift.drift_detected
-                            ? 'bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300'
-                            : 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
-                        }`}>
+                    <Badge
+                        variant={drift.drift_detected ? 'danger' : 'success'}
+                        size="sm"
+                    >
                         {drift.drift_detected ? (
-                            <><AlertTriangle className="w-3 h-3" /> DRIFT</>
+                            <>
+                                <AlertTriangle className="w-3 h-3" />
+                                DRIFT
+                            </>
                         ) : (
-                            <><CheckCircle className="w-3 h-3" /> STABLE</>
+                            <>
+                                <CheckCircle className="w-3 h-3" />
+                                STABLE
+                            </>
                         )}
-                    </span>
+                    </Badge>
                 )}
             </div>
 
+            {/* Content */}
             {isLoading ? (
-                <div className="space-y-2">
-                    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
-                    <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                <div className="space-y-3">
+                    <div className="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
                 </div>
             ) : drift?.enabled ? (
-                <>
-                    <div className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-primary-500" />
-                        <div className="flex items-baseline gap-1">
+                <div className="flex items-center gap-4">
+                    {/* Progress Ring */}
+                    <ProgressRing
+                        progress={bufferProgress}
+                        size={70}
+                        strokeWidth={6}
+                        variant={bufferProgress >= 100 ? 'success' : 'primary'}
+                    />
+
+                    {/* Stats */}
+                    <div className="flex-1">
+                        <div className="flex items-baseline gap-2">
                             <span className="text-2xl font-bold text-slate-900 dark:text-white">
                                 {drift.buffer_size}
                             </span>
@@ -51,26 +78,37 @@ export function DriftCard() {
                                 / {drift.buffer_threshold}
                             </span>
                         </div>
-                    </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            samples until next analysis
+                        </p>
 
-                    {/* Progress bar */}
-                    <div className="mt-3 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full transition-all duration-500 ${bufferProgress >= 100 ? 'bg-emerald-500' : 'bg-primary-500'
-                                }`}
-                            style={{ width: `${Math.min(bufferProgress, 100)}%` }}
-                        />
+                        {/* Mini progress bar */}
+                        <div className="mt-3 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full transition-all duration-500 ease-out rounded-full ${bufferProgress >= 100
+                                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                                        : 'bg-gradient-to-r from-primary-500 to-primary-400'
+                                    }`}
+                                style={{ width: `${Math.min(bufferProgress, 100)}%` }}
+                            />
+                        </div>
                     </div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                        {bufferProgress}% to next analysis
-                    </p>
-                </>
+                </div>
             ) : (
-                <p className="text-slate-400 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    Monitoring disabled
-                </p>
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">
+                        <Shield className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <div>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">
+                            Monitoring disabled
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                            Make predictions to enable drift detection
+                        </p>
+                    </div>
+                </div>
             )}
-        </div>
+        </GlassCard>
     );
 }
