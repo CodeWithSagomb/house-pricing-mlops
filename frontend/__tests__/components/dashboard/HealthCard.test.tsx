@@ -67,7 +67,7 @@ describe('HealthCard', () => {
         render(<HealthCard />, { wrapper: createWrapper() });
 
         expect(screen.getByText('System Health')).toBeInTheDocument();
-        expect(screen.getByText('Connection failed')).toBeInTheDocument();
+        expect(screen.getByText('Connection Failed')).toBeInTheDocument();
     });
 
     it('displays model version when healthy', () => {
