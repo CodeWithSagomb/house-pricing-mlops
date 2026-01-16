@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import { usePredict } from '@/lib/hooks/useApi';
 import { useApiKey } from '@/lib/contexts/ApiKeyContext';
-import { Send, DollarSign, Zap, Clock } from 'lucide-react';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { Send, DollarSign, Zap, Home, Users, MapPin, Clock } from 'lucide-react';
 
 /**
- * QuickPredict Component - Premium redesign
- * Compact prediction widget with animated result
+ * QuickPredict Component - Dark Teal Theme
+ * Input fields with icons and gradient border button
  */
 export function QuickPredict() {
     const { apiKey, isConfigured } = useApiKey();
@@ -16,7 +15,7 @@ export function QuickPredict() {
 
     const [input] = useState({
         MedInc: 8.3,
-        HouseAge: 41,
+        HouseAge: 41.0,
         AveRooms: 6.9,
         AveBedrms: 1.0,
         Population: 322,
@@ -30,62 +29,70 @@ export function QuickPredict() {
         predictMutation.mutate({ input, apiKey });
     };
 
+    const fields = [
+        { key: 'MedInc', label: 'MedInc', icon: DollarSign, value: input.MedInc },
+        { key: 'HouseAge', label: 'HouseAge', icon: Home, value: input.HouseAge },
+        { key: 'AveRooms', label: 'AveRooms', icon: Users, value: input.AveRooms },
+        { key: 'AveBedrms', label: 'AveBedrms', icon: MapPin, value: input.AveBedrms },
+    ];
+
     return (
-        <GlassCard className="animate-fade-in animate-stagger-3">
+        <div className="glass-card p-6 animate-fade-in animate-stagger-3">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-6">
+                <Zap className="w-5 h-5 text-teal-400" />
+                <span className="font-semibold text-white">Quick Prediction</span>
+            </div>
+
             <div className="flex flex-col lg:flex-row gap-6">
-                {/* Input Preview */}
+                {/* Input Fields Grid */}
                 <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Zap className="w-5 h-5 text-primary-500" />
-                        <h3 className="font-semibold text-slate-800 dark:text-slate-200">
-                            Quick Prediction
-                        </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        {fields.map((field) => {
+                            const Icon = field.icon;
+                            return (
+                                <div
+                                    key={field.key}
+                                    className="p-4 rounded-xl bg-navy-700/50 border border-teal-600/20"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs text-slate-500">{field.label}</span>
+                                        <Icon className="w-4 h-4 text-slate-600" />
+                                    </div>
+                                    <p className="text-xl font-bold text-white">
+                                        {typeof field.value === 'number' ? field.value.toFixed(1) : field.value}
+                                    </p>
+                                </div>
+                            );
+                        })}
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3 mb-4">
-                        {Object.entries(input).slice(0, 4).map(([key, value]) => (
-                            <div
-                                key={key}
-                                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-center"
-                            >
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                                    {key}
-                                </p>
-                                <p className="font-semibold text-slate-800 dark:text-white">
-                                    {typeof value === 'number' ? value.toFixed(1) : value}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-
+                    {/* Predict Button */}
                     <button
                         onClick={handlePredict}
                         disabled={predictMutation.isPending || !isConfigured}
-                        className="btn-primary w-full"
+                        className="btn-primary w-full disabled:opacity-50"
                     >
                         <Send className="w-4 h-4" />
                         {predictMutation.isPending ? 'Predicting...' : 'Get Price Estimate'}
                     </button>
 
                     {!isConfigured && (
-                        <p className="text-xs text-amber-500 mt-2 text-center">
+                        <p className="text-xs text-amber-400 mt-2 text-center">
                             Configure API key in Settings first
                         </p>
                     )}
                 </div>
 
-                {/* Result */}
-                <div className="lg:w-64 flex flex-col justify-center">
+                {/* Result Panel */}
+                <div className="lg:w-56">
                     {predictMutation.isSuccess && predictMutation.data ? (
-                        <div className="text-center p-6 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200 dark:border-emerald-800">
-                            <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 mb-2">
-                                <DollarSign className="w-5 h-5" />
-                                <span className="text-sm font-medium">Estimated Price</span>
-                            </div>
-                            <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 animate-fade-in">
+                        <div className="h-full flex flex-col justify-center items-center p-6 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                            <DollarSign className="w-10 h-10 text-amber-500 mb-2" />
+                            <p className="text-3xl font-bold text-white animate-fade-in">
                                 ${(predictMutation.data.predicted_price * 100000).toLocaleString()}
                             </p>
-                            <div className="flex items-center justify-center gap-4 mt-3 text-xs text-emerald-600/70 dark:text-emerald-400/70">
+                            <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
                                 <span>v{predictMutation.data.model_version}</span>
                                 <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
@@ -94,20 +101,22 @@ export function QuickPredict() {
                             </div>
                         </div>
                     ) : predictMutation.isPending ? (
-                        <div className="text-center p-6 rounded-xl bg-slate-50 dark:bg-slate-700/30 animate-pulse">
-                            <div className="h-6 bg-slate-200 dark:bg-slate-600 rounded mb-2 mx-auto w-24" />
-                            <div className="h-8 bg-slate-200 dark:bg-slate-600 rounded mx-auto w-32" />
+                        <div className="h-full flex items-center justify-center p-6 rounded-xl bg-navy-700/30 animate-pulse">
+                            <div className="text-center">
+                                <div className="h-8 w-24 bg-navy-600 rounded mb-2 mx-auto" />
+                                <div className="h-4 w-16 bg-navy-600 rounded mx-auto" />
+                            </div>
                         </div>
                     ) : (
-                        <div className="text-center p-6 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                            <DollarSign className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                            <p className="text-sm text-slate-400 dark:text-slate-500">
+                        <div className="h-full flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-teal-600/20">
+                            <DollarSign className="w-10 h-10 text-amber-500/50 mb-2" />
+                            <p className="text-sm text-slate-500 text-center">
                                 Click predict to see result
                             </p>
                         </div>
                     )}
                 </div>
             </div>
-        </GlassCard>
+        </div>
     );
 }

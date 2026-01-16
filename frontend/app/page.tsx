@@ -4,8 +4,8 @@ import { DriftCard } from '@/components/dashboard/DriftCard';
 import { QuickPredict } from '@/components/dashboard/QuickPredict';
 
 /**
- * Dashboard Page - Composition over Inheritance
- * Composes multiple independent widget components
+ * Dashboard Page - Dark Teal Theme
+ * Real-time overview of ML system
  */
 export default function DashboardPage() {
     return (
@@ -16,7 +16,7 @@ export default function DashboardPage() {
                     Dashboard
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-1">
-                    Real-time overview of your ML system
+                    Real-time overview of ML system
                 </p>
             </div>
 
@@ -28,7 +28,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Predict section */}
-            <div className="mt-8">
+            <div className="mt-4">
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
                     Quick Prediction
                 </h2>

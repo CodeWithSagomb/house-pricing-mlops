@@ -5,14 +5,22 @@
 /* Google Font - Inter */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ========================================
+   CSS Variables - Dark Teal Theme
+   ======================================== */
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
 }
 
 .dark {
-  --background: #0f172a;
+  --background: #0a0f1a;
   --foreground: #f8fafc;
+  --card-bg: rgba(15, 23, 42, 0.8);
+  --card-border: rgba(20, 184, 166, 0.2);
 }
 
 body {
@@ -22,152 +30,120 @@ body {
 }
 
 /* ========================================
-   Custom Utilities
+   Glass Card Styles
    ======================================== */
 
-@layer utilities {
-  /* Glassmorphism */
-  .glass {
-    @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-md;
-  }
+@layer components {
 
+  /* Dark Glass Card with Teal Left Border */
   .glass-card {
-    @apply bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border border-white/20 dark:border-slate-700/50;
+    @apply relative overflow-hidden rounded-xl;
+    @apply bg-white dark:bg-navy-800/80;
+    @apply border border-slate-200 dark:border-teal-600/20;
+    @apply backdrop-blur-sm;
+    @apply shadow-card-dark;
+    @apply transition-all duration-300;
   }
 
-  /* Gradient Text */
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-primary-700;
-  }
-
-  .text-gradient-success {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-emerald-700;
-  }
-
-  /* Gradient Border */
-  .gradient-border {
-    position: relative;
-  }
-
-  .gradient-border::before {
+  .glass-card::before {
     content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
+    @apply absolute left-0 top-0 bottom-0 w-1;
+    background: linear-gradient(180deg, #14b8a6 0%, #0d9488 50%, #0f766e 100%);
+  }
+
+  .glass-card:hover {
+    @apply shadow-card-dark-hover;
+    @apply border-teal-500/30;
+  }
+
+  /* Card Header Style */
+  .card-header {
+    @apply text-xs font-semibold uppercase tracking-wider;
+    @apply text-slate-500 dark:text-slate-400;
+  }
+
+  /* Status Badge */
+  .status-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply border;
+  }
+
+  .status-badge-success {
+    @apply status-badge;
+    @apply bg-emerald-500/10 border-emerald-500/30 text-emerald-400;
+  }
+
+  .status-badge-stable {
+    @apply status-badge;
+    @apply bg-teal-500/10 border-teal-500/30 text-teal-400;
+  }
+
+  /* Primary Button with Gradient Border */
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center gap-2;
+    @apply px-6 py-3 rounded-lg font-medium;
+    @apply bg-navy-800 dark:bg-navy-700;
+    @apply text-white;
+    @apply transition-all duration-300;
+    @apply hover:bg-navy-700 dark:hover:bg-navy-600;
+  }
+
+  .btn-primary::before {
+    content: '';
+    @apply absolute inset-0 rounded-lg;
+    @apply bg-gradient-to-r from-teal-500 to-teal-400;
+    @apply transition-opacity duration-300;
     padding: 1px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    opacity: 0;
-    transition: opacity 0.3s ease;
   }
 
-  .gradient-border:hover::before {
-    opacity: 1;
-  }
-
-  /* Card Hover Effect */
-  .card-hover {
-    @apply transition-all duration-300 ease-out;
-  }
-
-  .card-hover:hover {
-    @apply -translate-y-1 shadow-card-hover;
-  }
-
-  /* Status Pulse */
-  .status-pulse {
-    @apply relative;
-  }
-
-  .status-pulse::after {
-    content: '';
-    @apply absolute inset-0 rounded-full animate-ping opacity-75;
-    background: inherit;
-  }
-
-  /* Staggered Animation */
-  .animate-stagger-1 { animation-delay: 0.1s; }
-  .animate-stagger-2 { animation-delay: 0.2s; }
-  .animate-stagger-3 { animation-delay: 0.3s; }
-  .animate-stagger-4 { animation-delay: 0.4s; }
-}
-
-/* ========================================
-   Component Styles
-   ======================================== */
-
-@layer components {
-  /* Premium Card */
-  .premium-card {
-    @apply relative overflow-hidden rounded-xl p-6;
-    @apply bg-white dark:bg-slate-800;
-    @apply border border-slate-200 dark:border-slate-700;
-    @apply shadow-card;
-    @apply transition-all duration-300;
-  }
-
-  .premium-card:hover {
-    @apply shadow-card-hover -translate-y-0.5;
-  }
-
-  /* Stat Card */
-  .stat-card {
-    @apply premium-card;
-  }
-
-  .stat-card::before {
-    content: '';
-    @apply absolute top-0 left-0 w-full h-1;
-    @apply bg-gradient-to-r from-primary-500 to-primary-600;
-  }
-
-  /* Button Styles */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2;
-    @apply px-4 py-2.5 rounded-lg font-medium;
-    @apply bg-gradient-to-r from-primary-500 to-primary-600;
-    @apply text-white shadow-md;
-    @apply transition-all duration-200;
-    @apply hover:from-primary-600 hover:to-primary-700;
-    @apply hover:shadow-lg hover:-translate-y-0.5;
-    @apply active:translate-y-0;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0;
-  }
-
-  /* Input Styles */
-  .input-premium {
+  /* Input Field */
+  .input-dark {
     @apply w-full px-4 py-3 rounded-lg;
-    @apply bg-white dark:bg-slate-700;
-    @apply border border-slate-300 dark:border-slate-600;
+    @apply bg-navy-700/50 dark:bg-navy-700/50;
+    @apply border border-slate-300 dark:border-teal-600/20;
     @apply text-slate-900 dark:text-white;
     @apply placeholder-slate-400 dark:placeholder-slate-500;
     @apply transition-all duration-200;
-    @apply focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500;
+    @apply focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500;
     @apply focus:outline-none;
   }
 
-  /* Badge Styles */
-  .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  /* Sidebar Active State */
+  .sidebar-active {
+    @apply bg-teal-500/10 text-teal-400 border-l-2 border-teal-500;
   }
 
-  .badge-success {
-    @apply badge bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400;
+  /* Progress Ring */
+  .progress-ring-bg {
+    @apply stroke-slate-700;
   }
 
-  .badge-warning {
-    @apply badge bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400;
+  .progress-ring-fill {
+    @apply stroke-teal-500;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease-out;
+  }
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@layer utilities {
+  .animate-stagger-1 {
+    animation-delay: 0.1s;
   }
 
-  .badge-danger {
-    @apply badge bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400;
+  .animate-stagger-2 {
+    animation-delay: 0.2s;
   }
 
-  .badge-info {
-    @apply badge bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400;
+  .animate-stagger-3 {
+    animation-delay: 0.3s;
   }
 }
 
@@ -176,37 +152,31 @@ body {
    ======================================== */
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+  @apply bg-slate-600 dark:bg-slate-700 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400 dark:bg-slate-500;
+  @apply bg-slate-500 dark:bg-slate-600;
 }
 
 /* ========================================
-   Page Transitions
+   Mini Chart Wave Effect
    ======================================== */
 
-@keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-enter {
-  animation: pageEnter 0.4s ease-out;
+.wave-chart {
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(20, 184, 166, 0.1) 20%,
+      rgba(20, 184, 166, 0.3) 50%,
+      rgba(20, 184, 166, 0.1) 80%,
+      transparent 100%);
 }

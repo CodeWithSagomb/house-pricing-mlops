@@ -26,7 +26,7 @@ export default function ModelsPage() {
                     Models
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-1">
-                    Manage and monitor your ML models
+                    Manage and monitor ML models
                 </p>
             </div>
 
