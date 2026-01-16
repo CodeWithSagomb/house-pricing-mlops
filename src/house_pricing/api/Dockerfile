@@ -1,98 +1,90 @@
 # ==========================================
-# ÉTAPE 1 : BUILDER
+# STAGE 1: BUILDER - Export dependencies
 # ==========================================
-# Utiliser une version spécifique  pour la reproductibilité
-FROM python:3.12-slim-bookworm as builder
+FROM python:3.12-slim-bookworm AS builder
 
-# Optimisations Python
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=off \
+    PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on
 
-WORKDIR /tmp
+WORKDIR /build
 
-# Installation des outils de build et Poetry
-# Utilisation du cache apt pour accélérer les builds futurs
-RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    build-essential
+# Install build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Installation de Poetry (Version pinnée pour stabilité)
+# Install Poetry
 ENV POETRY_VERSION=2.0.0
-RUN pip install "poetry==$POETRY_VERSION"
-RUN poetry self add poetry-plugin-export
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" && \
+    poetry self add poetry-plugin-export
 
-# Copie des fichiers de dépendances
+# Copy dependency files
 COPY pyproject.toml poetry.lock ./
 
-# Export des requirements
-# --without-hashes est utilisé ici pour la compatibilité, mais --with-hashes est mieux pour la sécurité stricte
-RUN poetry export --format requirements.txt --output requirements.txt --without-hashes
+# Export only production dependencies (no dev)
+RUN poetry export --format requirements.txt --output requirements.txt --without-hashes --only main
 
 # ==========================================
-# ÉTAPE 2 : RUNTIME (Image de production)
+# STAGE 2: DEPENDENCIES - Install packages
 # ==========================================
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm AS dependencies
 
-# Métadonnées de l'image
-LABEL maintainer="cSagombaye <cSagombaye@house-pricing.com>" \
-    version="1.0" \
-    description="API House Pricing - Enterprise Grade"
+WORKDIR /deps
 
-# Sécurité : Création d'un utilisateur non-root
-# UID fixés pour faciliter la gestion des permissions sur les volumes
+# Copy requirements from builder
+COPY --from=builder /build/requirements.txt .
+
+# Install dependencies to a virtual environment
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# ==========================================
+# STAGE 3: RUNTIME - Minimal production image
+# ==========================================
+FROM python:3.12-slim-bookworm AS runtime
+
+# OCI Labels
+LABEL org.opencontainers.image.source="https://github.com/CodeWithSagomb/house-pricing-mlops" \
+    org.opencontainers.image.title="House Pricing API" \
+    org.opencontainers.image.description="MLOps API for house price prediction" \
+    org.opencontainers.image.version="1.0.0"
+
+# Create non-root user
 RUN groupadd -g 1000 appgroup && \
     useradd -r -u 1000 -g appgroup -d /app appuser
 
 WORKDIR /app
 
-# Upgrade pip et installation des requirements
-# Utilisation de mount=type=cache pour garder le cache pip entre les builds
-COPY --from=builder /tmp/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+# Copy virtual environment from dependencies stage
+COPY --from=dependencies /opt/venv /opt/venv
 
-# --- COPIE DU CODE SOURCE ---
-# On copie d'abord la config pour profiter du cache Docker layers si le code change mais pas la config
-COPY --chown=appuser:appgroup config/ config/
-COPY --chown=appuser:appgroup src/ src/
-
-# Gestion des artefacts ML
-# Le Preprocessor et le Modèle sont maintenant téléchargés dynamiquement depuis MLflow au démarrage.
-# Plus besoin de copier data/processed/preprocessor.pkl !
-
-# --- VARIABLES D'ENVIRONNEMENT (Documentation) ---
-# Valeurs par défaut ou placeholders pour documenter ce qui est attendu
-ENV PYTHONPATH=/app/src \
+# Add venv to PATH
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH=/app/src \
     PORT=8000 \
-    # MLflow
-    MLFLOW_TRACKING_URI="http://mlops_minio:9000" \
-    # App
-    API_ENV="production"
+    API_ENV=production \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# --- VOLUMES ---
-# Point de montage pour les logs si on veut les persister sur l'hôte
-VOLUME ["/app/logs"]
+# Copy application code (minimal)
+COPY --chown=appuser:appgroup config/ config/
+COPY --chown=appuser:appgroup src/house_pricing/ src/house_pricing/
 
-# Create drift reports directory with proper permissions
+# Create logs directory
 RUN mkdir -p /app/logs/drift_reports && chown -R appuser:appgroup /app/logs
 
-# --- SÉCURITÉ FINAL ---
+# Switch to non-root user
 USER appuser
 
-# Exposition du port
+# Expose port
 EXPOSE 8000
 
-# Healthcheck SANS curl (réduit la surface d'attaque et la taille de l'image)
-# Utilise le module http.client standard de Python
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD python -c "import http.client; conn = http.client.HTTPConnection('localhost', 8000); conn.request('GET', '/health'); response = conn.getresponse(); exit(0) if response.status == 200 else exit(1)"
+# Healthcheck without curl
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import http.client; c=http.client.HTTPConnection('localhost',8000); c.request('GET','/health'); exit(0 if c.getresponse().status==200 else 1)"
 
-# Command d'exécution optimisée
-# --proxy-headers : Nécessaire derrière un Load Balancer (AWS ALB, Nginx, Traefik)
-# --no-access-log : Pour la perf en prod (on a déjà le middleware JSON logging)
-# --workers : 1 par défaut, à ajuster selon CPU (souvent 2-4 workers en prod)
+# Run with uvicorn
 CMD ["sh", "-c", "uvicorn house_pricing.api.app:app --host 0.0.0.0 --port $PORT --proxy-headers --no-access-log"]
