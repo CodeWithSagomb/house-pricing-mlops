@@ -15,6 +15,7 @@ import {
     predict,
     predictBatch,
     reloadModel,
+    getFeatureImportance,
     PredictionInput,
 } from '@/lib/api';
 
@@ -24,6 +25,7 @@ export const queryKeys = {
     modelMetadata: ['model', 'metadata'] as const,
     driftStatus: ['monitoring', 'drift'] as const,
     abStatus: ['ab', 'status'] as const,
+    featureImportance: ['model', 'feature-importance'] as const,
 };
 
 /**
@@ -136,5 +138,17 @@ export function useReloadModel() {
                 description: error.message,
             });
         },
+    });
+}
+
+/**
+ * Hook: useFeatureImportance
+ * Fetches feature importance from the model
+ */
+export function useFeatureImportance() {
+    return useQuery({
+        queryKey: queryKeys.featureImportance,
+        queryFn: getFeatureImportance,
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     });
 }

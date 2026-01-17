@@ -211,6 +211,62 @@ class ModelService:
         """Return model metadata."""
         return self.metadata.to_dict()
 
+    def get_feature_importance(self) -> dict:
+        """
+        Extract feature importance from the model.
+
+        Supports:
+        - RandomForest, GradientBoosting (feature_importances_)
+        - Linear models (coef_)
+
+        Returns:
+            Dict with feature names and their importance scores.
+        """
+        if not self.model or not self.preprocessor:
+            raise ModelNotLoadedError("Model not loaded.")
+
+        # Feature names from preprocessor
+        feature_names = [
+            "MedInc",
+            "HouseAge",
+            "AveRooms",
+            "AveBedrms",
+            "Population",
+            "AveOccup",
+            "Latitude",
+            "Longitude",
+        ]
+
+        try:
+            # Try tree-based models (RandomForest, GradientBoosting, XGBoost)
+            if hasattr(self.model, "feature_importances_"):
+                importances = self.model.feature_importances_.tolist()
+            # Try linear models
+            elif hasattr(self.model, "coef_"):
+                importances = abs(self.model.coef_).flatten().tolist()
+            else:
+                logger.warning("Model does not support feature importance extraction")
+                return {
+                    "supported": False,
+                    "message": "Model type does not support feature importance",
+                }
+
+            # Combine with feature names and sort by importance
+            importance_dict = dict(zip(feature_names, importances))
+            sorted_importance = dict(
+                sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
+            )
+
+            return {
+                "supported": True,
+                "model_version": self.metadata.version,
+                "importances": sorted_importance,
+            }
+
+        except Exception as e:
+            logger.error(f"Error extracting feature importance: {e}")
+            return {"supported": False, "error": str(e)}
+
     def load_challenger_artifacts(self, alias: str = "challenger") -> tuple:
         """
         Load challenger model for A/B testing.

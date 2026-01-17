@@ -192,6 +192,17 @@ def health(service: ModelService = Depends(get_model_service)):
     return {"status": "ok", "model_version": service.model_version}
 
 
+@app.get("/model/feature-importance", tags=["Model Operations"])
+def get_feature_importance(service: ModelService = Depends(get_model_service)):
+    """
+    Get feature importance from the current model.
+
+    Returns importance scores for each feature, sorted by importance.
+    Supports tree-based models (RandomForest, GradientBoosting) and linear models.
+    """
+    return service.get_feature_importance()
+
+
 @app.get("/data/stats", tags=["Data Analytics"])
 def data_statistics():
     """

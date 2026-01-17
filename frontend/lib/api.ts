@@ -152,3 +152,17 @@ export async function reloadModel(apiKey: string): Promise<{ status: string }> {
         },
     });
 }
+
+// Feature importance types
+export interface FeatureImportance {
+    supported: boolean;
+    model_version?: string;
+    importances?: Record<string, number>;
+    message?: string;
+    error?: string;
+}
+
+// Feature importance endpoint
+export async function getFeatureImportance(): Promise<FeatureImportance> {
+    return fetchAPI<FeatureImportance>('/model/feature-importance');
+}

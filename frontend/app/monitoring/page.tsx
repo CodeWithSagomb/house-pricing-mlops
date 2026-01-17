@@ -1,16 +1,94 @@
 'use client';
 
+import { useState } from 'react';
 import { useDriftStatus, useModelMetadata } from '@/lib/hooks/useApi';
-import { TrendingUp, AlertTriangle, CheckCircle, BarChart3, Box, Clock } from 'lucide-react';
-import { DriftChart } from '@/components/charts/DriftChart';
+import {
+    TrendingUp, AlertTriangle, CheckCircle, BarChart3, Box, Clock,
+    Activity, LineChart, ExternalLink, RefreshCw
+} from 'lucide-react';
+
+// Grafana base URL - can be configured via env
+const GRAFANA_URL = process.env.NEXT_PUBLIC_GRAFANA_URL || 'http://localhost:3000';
 
 /**
- * Monitoring Page - Refactored with React Query
- * Displays drift status, buffer progress, and alerts
+ * GrafanaPanel Component
+ * Embeds a Grafana dashboard panel via iframe
+ */
+function GrafanaPanel({
+    dashboardUid,
+    panelId,
+    title,
+    height = 300,
+    theme = 'dark',
+}: {
+    dashboardUid: string;
+    panelId: number;
+    title: string;
+    height?: number;
+    theme?: 'dark' | 'light';
+}) {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    // Grafana embed URL with panel solo view
+    const embedUrl = `${GRAFANA_URL}/d-solo/${dashboardUid}?orgId=1&panelId=${panelId}&theme=${theme}&refresh=10s`;
+
+    return (
+        <div className="glass-card overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                    <LineChart className="w-4 h-4 text-teal-400" />
+                    <span className="text-sm font-medium text-white">{title}</span>
+                </div>
+                <a
+                    href={`${GRAFANA_URL}/d/${dashboardUid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-500 hover:text-teal-400 transition-colors"
+                >
+                    <ExternalLink className="w-4 h-4" />
+                </a>
+            </div>
+
+            <div className="relative" style={{ height }}>
+                {loading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-navy-900/50">
+                        <RefreshCw className="w-6 h-6 text-teal-400 animate-spin" />
+                    </div>
+                )}
+
+                {error ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-navy-900/50">
+                        <AlertTriangle className="w-8 h-8 text-amber-400 mb-2" />
+                        <p className="text-sm text-slate-400">Unable to load Grafana panel</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Ensure Grafana is running at {GRAFANA_URL}
+                        </p>
+                    </div>
+                ) : (
+                    <iframe
+                        src={embedUrl}
+                        width="100%"
+                        height={height}
+                        frameBorder="0"
+                        onLoad={() => setLoading(false)}
+                        onError={() => setError(true)}
+                        className={loading ? 'opacity-0' : 'opacity-100 transition-opacity'}
+                        style={{ background: 'transparent' }}
+                    />
+                )}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Monitoring Page - Enhanced with Grafana Embed
  */
 export default function MonitoringPage() {
     const { data: drift, isLoading: driftLoading } = useDriftStatus();
     const { data: model, isLoading: modelLoading } = useModelMetadata();
+    const [activeTab, setActiveTab] = useState<'overview' | 'grafana'>('overview');
 
     const loading = driftLoading || modelLoading;
 
@@ -21,30 +99,46 @@ export default function MonitoringPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    Monitoring
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">
-                    Real-time system health and drift detection
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gradient-cyber">Monitoring</h1>
+                    <p className="text-slate-500 mt-1">Real-time system health and metrics</p>
+                </div>
+
+                {/* Tab Navigation */}
+                <div className="flex bg-white/5 rounded-xl p-1">
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview'
+                                ? 'bg-teal-500 text-white'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                    >
+                        <Activity className="w-4 h-4 inline mr-2" />
+                        Overview
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('grafana')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'grafana'
+                                ? 'bg-teal-500 text-white'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                    >
+                        <LineChart className="w-4 h-4 inline mr-2" />
+                        Grafana
+                    </button>
+                </div>
             </div>
 
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="h-40 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
-                    ))}
-                </div>
-            ) : (
+            {activeTab === 'overview' ? (
                 <>
-                    {/* Status Overview */}
+                    {/* Status Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <StatCard
                             label="Drift Status"
                             value={drift?.drift_detected ? 'DETECTED' : 'STABLE'}
                             icon={drift?.drift_detected ? AlertTriangle : CheckCircle}
-                            color={drift?.drift_detected ? 'rose' : 'emerald'}
+                            color={drift?.drift_detected ? 'danger' : 'success'}
                         />
                         <StatCard
                             label="Buffer Size"
@@ -56,7 +150,7 @@ export default function MonitoringPage() {
                             label="Samples Analyzed"
                             value={String(drift?.samples_analyzed || 0)}
                             icon={TrendingUp}
-                            color="slate"
+                            color="default"
                         />
                         <StatCard
                             label="Model Version"
@@ -67,54 +161,48 @@ export default function MonitoringPage() {
                     </div>
 
                     {/* Drift Buffer Progress */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+                    <div className="glass-card p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">
                             Drift Analysis Buffer
                         </h2>
 
                         <div className="space-y-4">
                             <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 dark:text-slate-400">Progress to next analysis</span>
-                                <span className="text-slate-900 dark:text-white font-medium">{bufferProgress}%</span>
+                                <span className="text-slate-500">Progress to next analysis</span>
+                                <span className="text-white font-mono-data">{bufferProgress}%</span>
                             </div>
 
-                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div className="h-3 bg-white/5 rounded-full overflow-hidden">
                                 <div
-                                    className={`h-full transition-all duration-500 ${bufferProgress >= 100
-                                        ? 'bg-emerald-500'
-                                        : bufferProgress >= 75
-                                            ? 'bg-amber-500'
-                                            : 'bg-primary-500'
+                                    className={`h-full transition-all duration-500 rounded-full ${bufferProgress >= 100
+                                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                                            : 'bg-gradient-to-r from-teal-500 to-cyan-400'
                                         }`}
                                     style={{ width: `${Math.min(bufferProgress, 100)}%` }}
                                 />
                             </div>
 
-                            <DriftChart
-                                bufferSize={drift?.buffer_size || 0}
-                                threshold={drift?.buffer_threshold || 100}
-                            />
-
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                {drift?.buffer_size || 0} predictions collected. Analysis triggers at {drift?.buffer_threshold || 100} samples.
+                            <p className="text-sm text-slate-500">
+                                {drift?.buffer_size || 0} predictions collected.
+                                Analysis triggers at {drift?.buffer_threshold || 100} samples.
                             </p>
                         </div>
                     </div>
 
-                    {/* Drifted Columns */}
+                    {/* Drifted Columns Alert */}
                     {drift?.drifted_columns && drift.drifted_columns.length > 0 && (
-                        <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-6 border border-rose-200 dark:border-rose-800">
+                        <div className="glass-card p-6 border-l-4 border-orange-500 glow-orange">
                             <div className="flex items-center gap-2 mb-4">
-                                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-                                <h2 className="text-lg font-semibold text-rose-800 dark:text-rose-200">
-                                    Drifted Columns
+                                <AlertTriangle className="w-5 h-5 text-orange-400" />
+                                <h2 className="text-lg font-semibold text-orange-300">
+                                    Drifted Features ({drift.drifted_columns.length})
                                 </h2>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {drift.drifted_columns.map((col) => (
                                     <span
                                         key={col}
-                                        className="px-3 py-1 bg-rose-100 dark:bg-rose-800 text-rose-700 dark:text-rose-200 rounded-full text-sm"
+                                        className="px-3 py-1 bg-orange-500/20 text-orange-300 rounded-full text-sm border border-orange-500/30"
                                     >
                                         {col}
                                     </span>
@@ -123,29 +211,29 @@ export default function MonitoringPage() {
                         </div>
                     )}
 
-                    {/* System Info */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
-                            Model Information
-                        </h2>
+                    {/* Model Info */}
+                    <div className="glass-card p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Model Information</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                                <p className="text-slate-500 dark:text-slate-400">Model Name</p>
-                                <p className="font-medium text-slate-900 dark:text-white">{model?.model_name}</p>
+                                <p className="text-slate-500">Model Name</p>
+                                <p className="font-medium text-white font-mono-data">
+                                    {model?.model_name || 'N/A'}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-slate-500 dark:text-slate-400">Alias</p>
-                                <p className="font-medium text-slate-900 dark:text-white">@{model?.configured_alias}</p>
+                                <p className="text-slate-500">Alias</p>
+                                <p className="font-medium text-teal-400">@{model?.configured_alias || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-slate-500 dark:text-slate-400">Source</p>
-                                <p className="font-medium text-slate-900 dark:text-white">{model?.source}</p>
+                                <p className="text-slate-500">Source</p>
+                                <p className="font-medium text-white">{model?.source || 'N/A'}</p>
                             </div>
                             <div className="flex items-start gap-2">
-                                <Clock className="w-4 h-4 text-slate-400 mt-0.5" />
+                                <Clock className="w-4 h-4 text-slate-500 mt-0.5" />
                                 <div>
-                                    <p className="text-slate-500 dark:text-slate-400">Loaded At</p>
-                                    <p className="font-medium text-slate-900 dark:text-white">
+                                    <p className="text-slate-500">Loaded At</p>
+                                    <p className="font-medium text-white">
                                         {model?.loaded_at ? new Date(model.loaded_at).toLocaleString() : 'N/A'}
                                     </p>
                                 </div>
@@ -153,12 +241,61 @@ export default function MonitoringPage() {
                         </div>
                     </div>
                 </>
+            ) : (
+                /* Grafana Tab */
+                <div className="space-y-6">
+                    <div className="glass-card p-4">
+                        <p className="text-sm text-slate-400">
+                            <strong className="text-teal-400">Note:</strong> Grafana panels require Grafana
+                            to be running at <code className="text-cyan-400">{GRAFANA_URL}</code> with
+                            anonymous access enabled.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <GrafanaPanel
+                            dashboardUid="api-latency"
+                            panelId={1}
+                            title="API Latency (p50/p95/p99)"
+                            height={350}
+                        />
+                        <GrafanaPanel
+                            dashboardUid="api-latency"
+                            panelId={2}
+                            title="Current p50 Latency"
+                            height={350}
+                        />
+                    </div>
+
+                    <GrafanaPanel
+                        dashboardUid="api-latency"
+                        panelId={4}
+                        title="Prediction Requests by Status Code"
+                        height={300}
+                    />
+
+                    {/* Direct Link to Full Grafana */}
+                    <div className="glass-card p-6 text-center">
+                        <p className="text-slate-400 mb-4">
+                            View all dashboards in the full Grafana interface
+                        </p>
+                        <a
+                            href={GRAFANA_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-neon inline-flex items-center gap-2"
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                            Open Grafana
+                        </a>
+                    </div>
+                </div>
             )}
         </div>
     );
 }
 
-// Stat Card Component - Reusable
+// Stat Card Component
 function StatCard({
     label,
     value,
@@ -168,23 +305,22 @@ function StatCard({
     label: string;
     value: string;
     icon: React.ElementType;
-    color: 'emerald' | 'rose' | 'primary' | 'slate' | 'amber';
+    color: 'success' | 'danger' | 'primary' | 'default';
 }) {
-    const colorClasses = {
-        emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300',
-        rose: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300',
-        primary: 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300',
-        slate: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
-        amber: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300',
+    const colorStyles = {
+        success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+        danger: 'bg-rose-500/10 border-rose-500/20 text-rose-400',
+        primary: 'bg-teal-500/10 border-teal-500/20 text-teal-400',
+        default: 'bg-white/5 border-white/10 text-slate-300',
     };
 
     return (
-        <div className={`rounded-xl p-4 ${colorClasses[color]}`}>
+        <div className={`glass-card p-4 border ${colorStyles[color]}`}>
             <div className="flex items-center gap-2 mb-1">
                 <Icon className="w-4 h-4 opacity-70" />
                 <p className="text-sm opacity-75">{label}</p>
             </div>
-            <p className="text-xl font-bold">{value}</p>
+            <p className="text-2xl font-bold font-mono-data">{value}</p>
         </div>
     );
 }
