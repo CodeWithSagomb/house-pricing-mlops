@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Target, BarChart3, Box, Settings } from 'lucide-react';
+import { LayoutDashboard, Target, BarChart3, Box, Settings, History, LogIn, LogOut, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 /**
  * Navigation items - Open/Closed Principle
@@ -14,13 +15,15 @@ const navItems = [
     { href: '/predict', label: 'Prediction', icon: Target },
     { href: '/monitoring', label: 'Monitoring', icon: BarChart3 },
     { href: '/models', label: 'Models', icon: Box },
+    { href: '/history', label: 'History', icon: History },
 ];
 
 /**
- * Sidebar Component - Refactored with Lucide icons
+ * Sidebar Component - With user authentication
  */
 export function Sidebar() {
     const pathname = usePathname();
+    const { user, isAuthenticated, logout } = useAuth();
 
     return (
         <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
@@ -58,8 +61,35 @@ export function Sidebar() {
                 </ul>
             </nav>
 
-            {/* Footer */}
+            {/* User Section */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                {isAuthenticated && user ? (
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3 px-4 py-2 bg-teal-500/10 rounded-lg">
+                            <User className="w-5 h-5 text-teal-400" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                                <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={logout}
+                            className="flex items-center gap-3 px-4 py-2 w-full text-left text-slate-500 dark:text-slate-400 hover:text-rose-400 transition-colors"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <span className="text-sm">Logout</span>
+                        </button>
+                    </div>
+                ) : (
+                    <Link
+                        href="/login"
+                        className="flex items-center gap-3 px-4 py-2 text-teal-400 hover:text-teal-300 transition-colors"
+                    >
+                        <LogIn className="w-5 h-5" />
+                        <span className="text-sm font-medium">Sign In</span>
+                    </Link>
+                )}
+
                 <ThemeToggle />
                 <Link
                     href="/settings"

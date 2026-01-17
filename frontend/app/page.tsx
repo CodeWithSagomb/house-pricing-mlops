@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useHealth, useModelMetadata, useDriftStatus, usePredict } from '@/lib/hooks/useApi';
 import { useApiKey } from '@/lib/contexts/ApiKeyContext';
+import { FeatureImportance } from '@/components/dashboard/FeatureImportance';
 import {
     Wifi, WifiOff, Layers, Activity, Send, DollarSign,
     TrendingUp, Clock, Zap, Home, Users, Hash, AlertTriangle
@@ -166,8 +167,8 @@ export default function DashboardPage() {
                         </span>
                         {drift?.enabled && (
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${drift.drift_detected
-                                    ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                 }`}>
                                 {drift.drift_detected ? (
                                     <><AlertTriangle className="w-3 h-3" /> DRIFT</>
@@ -310,6 +311,9 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* ========== FEATURE IMPORTANCE ========== */}
+            <FeatureImportance />
         </div>
     );
 }

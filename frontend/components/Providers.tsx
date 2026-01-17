@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import { useState } from 'react';
 import { ApiKeyProvider } from '@/lib/contexts/ApiKeyContext';
 import { HistoryProvider } from '@/lib/contexts/HistoryContext';
+import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 /**
@@ -32,17 +33,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider>
             <QueryClientProvider client={queryClient}>
-                <ApiKeyProvider>
-                    <HistoryProvider>
-                        {children}
-                        <Toaster
-                            position="top-right"
-                            richColors
-                            closeButton
-                            theme="system"
-                        />
-                    </HistoryProvider>
-                </ApiKeyProvider>
+                <AuthProvider>
+                    <ApiKeyProvider>
+                        <HistoryProvider>
+                            {children}
+                            <Toaster
+                                position="top-right"
+                                richColors
+                                closeButton
+                                theme="system"
+                            />
+                        </HistoryProvider>
+                    </ApiKeyProvider>
+                </AuthProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
             </QueryClientProvider>
         </ThemeProvider>

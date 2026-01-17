@@ -11,6 +11,18 @@ from fastapi.security.api_key import APIKeyHeader
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from house_pricing.api.ab_testing import get_ab_router, init_ab_router
+from house_pricing.api.auth import (
+    PredictionHistoryItem,
+    Token,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    get_user_predictions,
+    register_user,
+)
 from house_pricing.api.config import get_settings
 from house_pricing.api.exceptions import ModelNotLoadedError, PredictionError
 from house_pricing.api.middleware import RequestIDMiddleware, setup_logging
@@ -190,6 +202,90 @@ def root():
 @app.get("/health", tags=["Infrastructure"])
 def health(service: ModelService = Depends(get_model_service)):
     return {"status": "ok", "model_version": service.model_version}
+
+
+# --- AUTH ROUTES ---
+
+
+@app.post("/auth/register", response_model=Token, tags=["Authentication"])
+async def auth_register(user_data: UserCreate):
+    """
+    Register a new user account.
+
+    Returns a JWT token for immediate authentication.
+    """
+    user = register_user(user_data.email, user_data.name, user_data.password)
+    access_token = create_access_token(data={"sub": user["id"], "email": user["email"]})
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": UserResponse(
+            id=user["id"],
+            email=user["email"],
+            name=user["name"],
+            created_at=user["created_at"],
+        ),
+    }
+
+
+@app.post("/auth/login", response_model=Token, tags=["Authentication"])
+async def auth_login(credentials: UserLogin):
+    """
+    Authenticate user and return JWT token.
+    """
+    user = authenticate_user(credentials.email, credentials.password)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect email or password",
+        )
+
+    access_token = create_access_token(data={"sub": user["id"], "email": user["email"]})
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": UserResponse(
+            id=user["id"],
+            email=user["email"],
+            name=user["name"],
+            created_at=user["created_at"],
+        ),
+    }
+
+
+@app.get("/auth/me", response_model=UserResponse, tags=["Authentication"])
+async def auth_me(current_user: dict = Depends(get_current_user)):
+    """
+    Get current authenticated user's profile.
+    """
+    return UserResponse(
+        id=current_user["id"],
+        email=current_user["email"],
+        name=current_user["name"],
+        created_at=current_user["created_at"],
+    )
+
+
+@app.get(
+    "/auth/history", response_model=list[PredictionHistoryItem], tags=["Authentication"]
+)
+async def auth_history(limit: int = 50, current_user: dict = Depends(get_current_user)):
+    """
+    Get current user's prediction history.
+    """
+    predictions = get_user_predictions(current_user["id"], limit=limit)
+    return [
+        PredictionHistoryItem(
+            id=p["id"],
+            predicted_price=p["predicted_price"],
+            model_version=p["model_version"],
+            features=p["features"],
+            created_at=p["created_at"],
+        )
+        for p in predictions
+    ]
 
 
 @app.get("/model/feature-importance", tags=["Model Operations"])
