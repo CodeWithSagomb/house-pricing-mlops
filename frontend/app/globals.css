@@ -2,182 +2,210 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Google Font - Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
-.dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-}
-
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
+/* Google Font - Inter + JetBrains Mono */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 /* ========================================
-   Custom Utilities
+   CYBERPUNK DARK THEME - CSS Variables
    ======================================== */
 
-@layer utilities {
-  /* Glassmorphism */
-  .glass {
-    @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-md;
-  }
-
-  .glass-card {
-    @apply bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border border-white/20 dark:border-slate-700/50;
-  }
-
-  /* Gradient Text */
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-primary-700;
-  }
-
-  .text-gradient-success {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-emerald-700;
-  }
-
-  /* Gradient Border */
-  .gradient-border {
-    position: relative;
-  }
-
-  .gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .gradient-border:hover::before {
-    opacity: 1;
-  }
-
-  /* Card Hover Effect */
-  .card-hover {
-    @apply transition-all duration-300 ease-out;
-  }
-
-  .card-hover:hover {
-    @apply -translate-y-1 shadow-card-hover;
-  }
-
-  /* Status Pulse */
-  .status-pulse {
-    @apply relative;
-  }
-
-  .status-pulse::after {
-    content: '';
-    @apply absolute inset-0 rounded-full animate-ping opacity-75;
-    background: inherit;
-  }
-
-  /* Staggered Animation */
-  .animate-stagger-1 { animation-delay: 0.1s; }
-  .animate-stagger-2 { animation-delay: 0.2s; }
-  .animate-stagger-3 { animation-delay: 0.3s; }
-  .animate-stagger-4 { animation-delay: 0.4s; }
+:root {
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --neon-green: #4ade80;
+  --neon-cyan: #22d3ee;
+  --neon-blue: #3b82f6;
+  --neon-yellow: #facc15;
+  --neon-orange: #f59e0b;
 }
 
 /* ========================================
-   Component Styles
+   BODY - Deep Radial Gradient Background
+   ======================================== */
+
+body {
+  background: radial-gradient(ellipse at top, #0f172a 0%, #020617 50%, #000000 100%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* ========================================
+   GLASSMORPHISM COMPONENTS
    ======================================== */
 
 @layer components {
-  /* Premium Card */
-  .premium-card {
-    @apply relative overflow-hidden rounded-xl p-6;
-    @apply bg-white dark:bg-slate-800;
-    @apply border border-slate-200 dark:border-slate-700;
-    @apply shadow-card;
-    @apply transition-all duration-300;
+
+  /* Glass Card - Core */
+  .glass-card {
+    @apply relative overflow-hidden rounded-2xl;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 30px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
-  .premium-card:hover {
-    @apply shadow-card-hover -translate-y-0.5;
+  .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
-  /* Stat Card */
-  .stat-card {
-    @apply premium-card;
+  /* Glass Input */
+  .glass-input {
+    @apply w-full px-4 py-4 rounded-xl;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.3s ease;
   }
 
-  .stat-card::before {
-    content: '';
-    @apply absolute top-0 left-0 w-full h-1;
-    @apply bg-gradient-to-r from-primary-500 to-primary-600;
+  .glass-input:focus {
+    outline: none;
+    border-color: rgba(34, 211, 238, 0.5);
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
   }
 
-  /* Button Styles */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2;
-    @apply px-4 py-2.5 rounded-lg font-medium;
-    @apply bg-gradient-to-r from-primary-500 to-primary-600;
-    @apply text-white shadow-md;
-    @apply transition-all duration-200;
-    @apply hover:from-primary-600 hover:to-primary-700;
-    @apply hover:shadow-lg hover:-translate-y-0.5;
-    @apply active:translate-y-0;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0;
+  .glass-input::placeholder {
+    color: #64748b;
   }
 
-  /* Input Styles */
-  .input-premium {
-    @apply w-full px-4 py-3 rounded-lg;
-    @apply bg-white dark:bg-slate-700;
-    @apply border border-slate-300 dark:border-slate-600;
-    @apply text-slate-900 dark:text-white;
-    @apply placeholder-slate-400 dark:placeholder-slate-500;
-    @apply transition-all duration-200;
-    @apply focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500;
-    @apply focus:outline-none;
+  /* Neon Button */
+  .btn-neon {
+    @apply relative px-8 py-4 rounded-xl font-semibold text-white;
+    background: linear-gradient(135deg, #0d9488 0%, #10b981 50%, #22c55e 100%);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    transition: all 0.3s ease;
   }
 
-  /* Badge Styles */
-  .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  .btn-neon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
   }
 
-  .badge-success {
-    @apply badge bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400;
-  }
-
-  .badge-warning {
-    @apply badge bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400;
-  }
-
-  .badge-danger {
-    @apply badge bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400;
-  }
-
-  .badge-info {
-    @apply badge bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400;
+  .btn-neon:active {
+    transform: translateY(0);
   }
 }
 
 /* ========================================
-   Custom Scrollbar
+   NEON TEXT EFFECTS
+   ======================================== */
+
+@layer utilities {
+
+  /* Neon Green Text */
+  .text-neon-green {
+    color: #4ade80;
+    text-shadow:
+      0 0 10px rgba(74, 222, 128, 0.5),
+      0 0 20px rgba(74, 222, 128, 0.3),
+      0 0 40px rgba(74, 222, 128, 0.2);
+  }
+
+  /* Neon Cyan Text */
+  .text-neon-cyan {
+    color: #22d3ee;
+    text-shadow:
+      0 0 10px rgba(34, 211, 238, 0.5),
+      0 0 20px rgba(34, 211, 238, 0.3),
+      0 0 40px rgba(34, 211, 238, 0.2);
+  }
+
+  /* Neon Yellow Text */
+  .text-neon-yellow {
+    color: #facc15;
+    text-shadow:
+      0 0 10px rgba(250, 204, 21, 0.5),
+      0 0 20px rgba(250, 204, 21, 0.3);
+  }
+
+  /* Neon Orange Text */
+  .text-neon-orange {
+    color: #f59e0b;
+    text-shadow:
+      0 0 10px rgba(245, 158, 11, 0.5),
+      0 0 20px rgba(245, 158, 11, 0.3);
+  }
+
+  /* Gradient Text */
+  .text-gradient-cyber {
+    background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 50%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Monospace for Data */
+  .font-mono-data {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* ========================================
+   GLOW EFFECTS
+   ======================================== */
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.2), 0 0 40px rgba(74, 222, 128, 0.1);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.2), 0 0 40px rgba(34, 211, 238, 0.1);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.2), 0 0 40px rgba(250, 204, 21, 0.1);
+}
+
+.glow-orange {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), 0 0 40px rgba(245, 158, 11, 0.1);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes wave {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR
    ======================================== */
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -185,28 +213,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400 dark:bg-slate-500;
-}
-
-/* ========================================
-   Page Transitions
-   ======================================== */
-
-@keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-enter {
-  animation: pageEnter 0.4s ease-out;
+  background: rgba(100, 116, 139, 0.7);
 }

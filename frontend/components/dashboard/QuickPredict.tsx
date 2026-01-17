@@ -14,25 +14,21 @@ const featureDefinitions = {
         label: 'MedInc',
         tooltip: 'Median income in block group (in $10,000s)',
         unit: '×$10k',
-        icon: '💰',
     },
     HouseAge: {
         label: 'HouseAge',
         tooltip: 'Median house age in block group (years)',
         unit: 'years',
-        icon: '🏠',
     },
     AveRooms: {
         label: 'AveRooms',
         tooltip: 'Average number of rooms per household',
         unit: 'rooms',
-        icon: '🛋️',
     },
     AveBedrms: {
         label: 'AveBedrms',
         tooltip: 'Average number of bedrooms per household',
         unit: 'beds',
-        icon: '🛏️',
     },
 };
 
@@ -106,8 +102,7 @@ export function QuickPredict() {
                                 )}
 
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                                        <span>{field.icon}</span>
+                                    <span className="text-xs text-slate-500">
                                         {field.label}
                                     </span>
                                     <Info className="w-3 h-3 text-slate-600" />
