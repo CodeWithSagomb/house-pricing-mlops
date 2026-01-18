@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
-ENV POETRY_VERSION=2.0.0
+ENV POETRY_VERSION=2.1.0
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" && \
     poetry self add poetry-plugin-export
 
