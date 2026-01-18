@@ -5,8 +5,8 @@ import { Providers } from '@/components/Providers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
-    title: 'MLOps Dashboard',
-    description: 'House Pricing MLOps System Dashboard',
+    title: 'SAGOMBAYE real estate',
+    description: 'Real Estate Price Prediction Platform',
 };
 
 export default function RootLayout({

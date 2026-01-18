@@ -30,10 +30,10 @@ export function Sidebar() {
             {/* Logo */}
             <div className="p-6 border-b border-slate-200 dark:border-slate-700">
                 <h1 className="text-xl font-bold text-primary-600 dark:text-primary-400">
-                    MLOps Dashboard
+                    SAGOMBAYE
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    House Pricing System
+                    Real Estate Platform
                 </p>
             </div>
 

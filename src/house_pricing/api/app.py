@@ -9,6 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security.api_key import APIKeyHeader
 from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from house_pricing.api.ab_testing import get_ab_router, init_ab_router
 from house_pricing.api.auth import (
@@ -157,9 +160,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3001", "http://127.0.0.1:3001"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-KEY"],
 )
+
+# Rate Limiting Setup
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.exception_handler(ModelNotLoadedError)
@@ -208,11 +216,13 @@ def health(service: ModelService = Depends(get_model_service)):
 
 
 @app.post("/auth/register", response_model=Token, tags=["Authentication"])
-async def auth_register(user_data: UserCreate):
+@limiter.limit("5/hour")
+async def auth_register(request: Request, user_data: UserCreate):
     """
     Register a new user account.
 
     Returns a JWT token for immediate authentication.
+    Rate limited: 5 requests/hour per IP.
     """
     user = register_user(user_data.email, user_data.name, user_data.password)
     access_token = create_access_token(data={"sub": user["id"], "email": user["email"]})
@@ -230,9 +240,11 @@ async def auth_register(user_data: UserCreate):
 
 
 @app.post("/auth/login", response_model=Token, tags=["Authentication"])
-async def auth_login(credentials: UserLogin):
+@limiter.limit("10/minute")
+async def auth_login(request: Request, credentials: UserLogin):
     """
     Authenticate user and return JWT token.
+    Rate limited: 10 requests/minute per IP (brute force protection).
     """
     user = authenticate_user(credentials.email, credentials.password)
     if not user:
@@ -338,7 +350,9 @@ def data_statistics():
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Model Operations"])
+@limiter.limit("100/hour")
 async def predict_endpoint(
+    request: Request,
     features: HouseFeatures,
     background_tasks: BackgroundTasks,
     api_key: str = Depends(verify_api_key),

@@ -25,3 +25,28 @@ pg_database_size_bytes / 1024 / 1024
 cd actions-runner
 export RUNNER_ALLOW_RUNASROOT=1
 ./run.sh
+
+###########################################################################"
+
+Ce que l'Authentification User Permet d'Accéder
+Actuellement, l'authentification donne accès à :
+
+🔓 Fonctionnalités Actuelles
+Fonctionnalité	Description	Protégé
+Historique des prédictions	/history - Voir toutes vos prédictions passées	✅ Oui
+Profil utilisateur	/auth/me - Voir vos informations	✅ Oui
+Session persistante	Token JWT stocké dans localStorage	✅ Oui
+🔐 Ce qui N'EST PAS encore protégé
+Fonctionnalité	Status
+Dashboard	🟡 Accessible à tous
+Prédictions (/predict)	🟡 Protégé par API Key, pas par user
+Monitoring	🟡 Accessible à tous
+Models	🟡 Accessible à tous
+💡 Extensions Possibles
+Si tu veux, on peut étendre l'authentification pour :
+
+Lier les prédictions à l'utilisateur - Sauvegarder chaque prédiction dans l'historique de l'utilisateur connecté
+Protéger certaines pages - Rediriger vers login si non authentifié
+Rôles/Permissions - Admin vs User vs Viewer
+Quotas - Limiter le nombre de prédictions par utilisateur
+Veux-tu que j'implémente l'une de ces extensions ?
