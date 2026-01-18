@@ -14,6 +14,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from house_pricing.api.ab_testing import get_ab_router, init_ab_router
+from house_pricing.api.audit import log_auth_event
 from house_pricing.api.auth import (
     PredictionHistoryItem,
     Token,
@@ -155,10 +156,15 @@ Instrumentator().instrument(app).expose(
 # Setup Middleware
 app.add_middleware(RequestIDMiddleware)
 
-# CORS for frontend
+# CORS for frontend - Dynamic based on environment
+CORS_ORIGINS = (
+    ["http://localhost:3001", "http://127.0.0.1:3001"]
+    if settings.ENVIRONMENT == "development"
+    else [settings.FRONTEND_URL]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://127.0.0.1:3001"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-API-KEY"],
@@ -227,6 +233,9 @@ async def auth_register(request: Request, user_data: UserCreate):
     user = register_user(user_data.email, user_data.name, user_data.password)
     access_token = create_access_token(data={"sub": user["id"], "email": user["email"]})
 
+    # Audit log
+    log_auth_event("register", request, user_id=user["id"], email=user["email"])
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -248,12 +257,17 @@ async def auth_login(request: Request, credentials: UserLogin):
     """
     user = authenticate_user(credentials.email, credentials.password)
     if not user:
+        # Log failed login attempt
+        log_auth_event("login", request, email=credentials.email, success=False)
         raise HTTPException(
             status_code=401,
             detail="Incorrect email or password",
         )
 
     access_token = create_access_token(data={"sub": user["id"], "email": user["email"]})
+
+    # Log successful login
+    log_auth_event("login", request, user_id=user["id"], email=user["email"])
 
     return {
         "access_token": access_token,

@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     AB_TRAFFIC_SPLIT: float = 0.9  # 90% to champion, 10% to challenger
     AB_CHALLENGER_ALIAS: str = "challenger"
 
+    # Environment (development/production)
+    ENVIRONMENT: str = "development"
+    FRONTEND_URL: str = "http://localhost:3001"  # Prod: https://your-app.vercel.app
+
+    # JWT Secret (for auth)
+    JWT_SECRET_KEY: str = "mlops-secret-key-change-in-production"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
