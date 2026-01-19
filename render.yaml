@@ -1,0 +1,45 @@
+# render.yaml - Configuration Blueprint pour Render
+# Documentation: https://render.com/docs/blueprint-spec
+
+services:
+  # ==========================================
+  # API FastAPI - Web Service
+  # ==========================================
+  - type: web
+    name: sagombaye-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    region: frankfurt  # EU region
+    plan: free
+    branch: main
+
+    # Health check
+    healthCheckPath: /health
+
+    # Environment variables
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: API_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false  # Set manually after Vercel deploy
+      - key: MLFLOW_TRACKING_URI
+        value: "disabled"  # Will use local model
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sagombaye-db
+          property: connectionString
+
+# ==========================================
+# PostgreSQL Database
+# ==========================================
+databases:
+  - name: sagombaye-db
+    plan: free  # Free for 90 days
+    region: frankfurt
+    databaseName: sagombaye
+    user: sagombaye

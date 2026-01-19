@@ -64,11 +64,18 @@ class ModelService:
         Load model and preprocessor from MLflow with intelligent fallback.
 
         Strategy:
-        1. Try to load via alias (e.g., @champion)
-        2. If alias not found, fallback to latest version
-        3. Retry with exponential backoff on transient errors
+        1. If MLFLOW_TRACKING_URI is "disabled", load from local files (cloud mode)
+        2. Try to load via alias (e.g., @champion)
+        3. If alias not found, fallback to latest version
+        4. Retry with exponential backoff on transient errors
         """
         settings = get_settings()
+
+        # Cloud mode: Load from local files (when MLflow is not available)
+        if settings.MLFLOW_TRACKING_URI == "disabled":
+            self._load_from_local()
+            return
+
         mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
         client = mlflow.MlflowClient()
 
@@ -168,6 +175,59 @@ class ModelService:
             logger.info("✅ Preprocessor loaded from local fallback.")
         except Exception as e:
             raise ModelNotLoadedError(f"Cannot load preprocessor: {e}")
+
+    def _load_from_local(self) -> None:
+        """
+        Load model and preprocessor from local files (cloud mode).
+
+        Used when MLFLOW_TRACKING_URI is set to 'disabled'.
+        """
+        import json
+        from pathlib import Path
+
+        logger.info("☁️ Cloud mode: Loading model from local files...")
+
+        # Paths for cloud deployment (Docker)
+        base_path = Path("/app")
+        model_path = base_path / "models/production/model.joblib"
+        metadata_path = base_path / "models/production/metadata.json"
+        preprocessor_path = base_path / "data/processed/preprocessor.pkl"
+
+        # Fallback to local dev paths
+        if not model_path.exists():
+            base_path = Path(__file__).parent.parent.parent.parent
+            model_path = base_path / "models/production/model.joblib"
+            metadata_path = base_path / "models/production/metadata.json"
+            preprocessor_path = base_path / "data/processed/preprocessor.pkl"
+
+        # Load model
+        if not model_path.exists():
+            raise ModelNotLoadedError(f"Model file not found: {model_path}")
+
+        self.model = joblib.load(model_path)
+        logger.info(f"✅ Model loaded from: {model_path}")
+
+        # Load metadata
+        if metadata_path.exists():
+            with open(metadata_path) as f:
+                meta = json.load(f)
+            self.metadata = ModelMetadata(
+                version=str(meta.get("version", "local")),
+                name="HousePricing_random_forest",
+                source="local",
+                run_id=meta.get("run_id", ""),
+                loaded_at=datetime.now(),
+            )
+        else:
+            self.metadata = ModelMetadata(version="local", source="local")
+
+        # Load preprocessor
+        if not preprocessor_path.exists():
+            raise ModelNotLoadedError(f"Preprocessor not found: {preprocessor_path}")
+
+        self.preprocessor = joblib.load(preprocessor_path)
+        logger.info(f"✅ Preprocessor loaded from: {preprocessor_path}")
+        logger.info(f"☁️ Cloud mode: Model v{self.metadata.version} ready.")
 
     def _load_model_with_retry(self, settings) -> None:
         """Load model with retry logic."""
