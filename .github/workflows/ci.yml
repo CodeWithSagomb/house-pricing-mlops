@@ -309,6 +309,9 @@ jobs:
 
       - name: Start MLflow
         run: |
+          echo "Resetting MLflow database to fix migration issues..."
+          docker compose exec -T postgres psql -U mlops -c "DROP DATABASE IF EXISTS mlflow_db;" || true
+          docker compose exec -T postgres psql -U mlops -c "CREATE DATABASE mlflow_db;" || true
           echo "Starting MLflow..."
           docker compose up -d mlflow
           echo "Waiting 60s for MLflow to start..."
