@@ -4,7 +4,7 @@
 # ==========================================
 # STAGE 1: Builder - Export dependencies
 # ==========================================
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -28,7 +28,7 @@ RUN poetry export --format requirements.txt --output requirements.txt --without-
 # ==========================================
 # STAGE 2: Runtime - Minimal production image
 # ==========================================
-FROM python:3.12-slim as runtime
+FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
@@ -51,13 +51,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/house_pricing /app/src/house_pricing
 
-# Copy model files (embedded in image for Render)
-COPY models/production/model.joblib /app/models/production/model.joblib
-COPY models/production/metadata.json /app/models/production/metadata.json
-COPY data/processed/preprocessor.pkl /app/data/processed/preprocessor.pkl
+# Copy startup script
+COPY scripts/render_start.sh /app/render_start.sh
+RUN chmod +x /app/render_start.sh
 
-# Create necessary directories
-RUN mkdir -p /app/logs/drift_reports && \
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs/drift_reports /app/models/production /app/data/processed && \
     chown -R appuser:appgroup /app
 
 # Set Python path
@@ -71,8 +70,8 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# Start command - Render sets PORT environment variable
-CMD ["sh", "-c", "uvicorn house_pricing.api.app:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start command - uses startup script that downloads model
+CMD ["/app/render_start.sh"]
