@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 
 # Install MLflow and dependencies
 RUN pip install --no-cache-dir \
-    mlflow==3.7.0 \
+    mlflow==3.8.0 \
     psycopg2-binary \
     boto3
 
