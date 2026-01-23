@@ -10,14 +10,18 @@ class Settings(BaseSettings):
     API_VERSION: str = "1.0.0"
 
     # Security
-    API_KEY: str  # Sera lu depuis .env (Obligatoire)
+    API_KEY: str = "demo-key"  # Default for HF Spaces, override in production
 
-    # MLflow
-    MLFLOW_TRACKING_URI: str
+    # Model Source: 'mlflow' or 'local'
+    MODEL_SOURCE: str = "mlflow"  # Set to 'local' for HF Spaces
+
+    # MLflow (used when MODEL_SOURCE='mlflow')
+    MLFLOW_TRACKING_URI: str = ""
     MODEL_NAME: str = "HousePricing_random_forest"
     MODEL_ALIAS: str = "champion"  # On vise le tag @champion
 
-    # Paths
+    # Local paths (used when MODEL_SOURCE='local')
+    MODEL_PATH: str = "models/production/model.joblib"
     PREPROCESSOR_PATH: str = "data/processed/preprocessor.pkl"
 
     # A/B Testing

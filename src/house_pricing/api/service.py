@@ -61,14 +61,62 @@ class ModelService:
 
     def load_artifacts(self) -> None:
         """
-        Load model and preprocessor from MLflow with intelligent fallback.
+        Load model and preprocessor with support for multiple sources.
 
-        Strategy:
-        1. Try to load via alias (e.g., @champion)
-        2. If alias not found, fallback to latest version
-        3. Retry with exponential backoff on transient errors
+        Strategy based on MODEL_SOURCE:
+        - 'local': Load directly from filesystem (for HF Spaces)
+        - 'mlflow': Load via MLflow registry (default)
         """
         settings = get_settings()
+
+        if settings.MODEL_SOURCE == "local":
+            self._load_local_artifacts(settings)
+        else:
+            self._load_mlflow_artifacts(settings)
+
+    def _load_local_artifacts(self, settings) -> None:
+        """Load model and preprocessor from local files (for HF Spaces)."""
+        import os
+
+        logger.info("📦 Loading ML artifacts from LOCAL files...")
+
+        # Load model
+        model_path = settings.MODEL_PATH
+        if not os.path.exists(model_path):
+            # Try relative to /app for Docker
+            model_path = f"/app/{settings.MODEL_PATH}"
+
+        if not os.path.exists(model_path):
+            raise ModelNotLoadedError(f"Model file not found: {settings.MODEL_PATH}")
+
+        logger.info(f"📂 Loading model from: {model_path}")
+        self.model = joblib.load(model_path)
+
+        # Load preprocessor
+        preprocessor_path = settings.PREPROCESSOR_PATH
+        if not os.path.exists(preprocessor_path):
+            preprocessor_path = f"/app/{settings.PREPROCESSOR_PATH}"
+
+        if os.path.exists(preprocessor_path):
+            logger.info(f"📂 Loading preprocessor from: {preprocessor_path}")
+            self.preprocessor = joblib.load(preprocessor_path)
+        else:
+            logger.warning(f"⚠️ Preprocessor not found: {preprocessor_path}")
+            self.preprocessor = None
+
+        # Update metadata
+        self.metadata = ModelMetadata(
+            version="local",
+            name=settings.MODEL_NAME,
+            source="local",
+            run_id="embedded",
+            loaded_at=datetime.now(),
+        )
+
+        logger.info("✅ Local artifacts loaded successfully!")
+
+    def _load_mlflow_artifacts(self, settings) -> None:
+        """Load model and preprocessor from MLflow (original behavior)."""
         mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
         client = mlflow.MlflowClient()
 
