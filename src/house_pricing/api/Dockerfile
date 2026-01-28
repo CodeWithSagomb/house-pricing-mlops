@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     build-essential
 
 # Installation de Poetry (Version pinnée pour stabilité)
-ENV POETRY_VERSION=2.0.0
+ENV POETRY_VERSION=2.1.0
 RUN pip install "poetry==$POETRY_VERSION"
 RUN poetry self add poetry-plugin-export
 
