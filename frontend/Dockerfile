@@ -27,6 +27,7 @@ COPY . .
 # Build-time environment variables
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV DOCKER_BUILD=true
 
 # Build the application
 RUN npm run build
@@ -41,7 +42,7 @@ WORKDIR /app
 
 # Security: Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+  adduser --system --uid 1001 nextjs
 
 # Production environment
 ENV NODE_ENV=production
@@ -66,9 +67,9 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 
 # OCI Image Labels
 LABEL org.opencontainers.image.title="MLOps Dashboard" \
-      org.opencontainers.image.description="House Pricing MLOps Frontend Dashboard" \
-      org.opencontainers.image.vendor="CodeWithSagomb" \
-      org.opencontainers.image.source="https://github.com/CodeWithSagomb/house-pricing-mlops"
+  org.opencontainers.image.description="House Pricing MLOps Frontend Dashboard" \
+  org.opencontainers.image.vendor="CodeWithSagomb" \
+  org.opencontainers.image.source="https://github.com/CodeWithSagomb/house-pricing-mlops"
 
 # Start the application
 CMD ["node", "server.js"]

@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
+
+// Detect if running in Docker (standalone mode) or Vercel
+const isDocker = process.env.DOCKER_BUILD === 'true';
+
 const nextConfig = {
-    // Standalone output for Docker optimization
-    output: 'standalone',
+    // Standalone output only for Docker (not for Vercel)
+    ...(isDocker && { output: 'standalone' }),
 
     // Environment variables (build-time)
     env: {
@@ -19,7 +23,7 @@ const nextConfig = {
 
     // Image optimization settings
     images: {
-        unoptimized: true, // For standalone deployment
+        unoptimized: isDocker, // Only for Docker standalone
     },
 
     // Experimental features for performance
