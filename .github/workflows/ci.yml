@@ -340,6 +340,38 @@ jobs:
       - name: Check infrastructure status
         run: docker compose ps
 
+      - name: Train and register model (required for API)
+        run: |
+          echo "Training model (required because volumes were cleaned)..."
+          source .venv/bin/activate || python -m venv .venv && source .venv/bin/activate
+          pip install -q poetry
+          poetry install --no-interaction --only main
+
+          # Set environment for MLflow
+          export MLFLOW_TRACKING_URI=http://localhost:5000
+          export AWS_ACCESS_KEY_ID=${{ secrets.MINIO_ROOT_USER }}
+          export AWS_SECRET_ACCESS_KEY=${{ secrets.MINIO_ROOT_PASSWORD }}
+          export MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
+
+          # Train model
+          python src/house_pricing/models/train.py
+
+          # Set champion alias
+          python -c "
+          import mlflow
+          mlflow.set_tracking_uri('http://localhost:5000')
+          client = mlflow.MlflowClient()
+          versions = client.search_model_versions(\"name='HousePricing_random_forest'\")
+          if versions:
+              latest = max(versions, key=lambda x: int(x.version))
+              client.set_registered_model_alias('HousePricing_random_forest', 'champion', latest.version)
+              print(f'✅ Alias @champion set to version {latest.version}')
+          else:
+              print('❌ No model versions found!')
+              exit(1)
+          "
+          echo "Model trained and registered successfully!"
+
       - name: Deploy API
         run: |
           docker compose stop api || true
@@ -357,15 +389,21 @@ jobs:
 
       - name: API Health check
         run: |
-          for i in 1 2 3 4 5; do
+          echo "Checking API health (up to 2 min)..."
+          for i in {1..12}; do
             if curl -sf http://localhost:8000/health; then
+              echo ""
               echo "API is healthy!"
               exit 0
             fi
-            echo "Attempt $i failed, waiting..."
-            sleep 5
+            echo "Attempt $i/12: API not ready, waiting 10s..."
+            sleep 10
           done
-          echo "API Health check failed"
+          echo "API Health check failed!"
+          echo "=== API Container Status ==="
+          docker ps -a | grep api
+          echo "=== API Logs (last 50 lines) ==="
+          docker logs mlops_api 2>&1 | tail -50
           exit 1
 
       - name: Frontend Health check
