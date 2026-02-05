@@ -1,0 +1,89 @@
+# Dockerfile.huggingface - Optimized for Hugging Face Spaces
+# Multi-stage build for smaller image size
+
+# ==========================================
+# STAGE 1: Builder - Export dependencies
+# ==========================================
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+ENV POETRY_VERSION=2.1.0
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" && \
+    poetry self add poetry-plugin-export
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock ./
+
+# Export production dependencies (minimal)
+RUN poetry export --format requirements.txt --output requirements.txt --without-hashes --only main
+
+# ==========================================
+# STAGE 2: Runtime - Minimal production image
+# ==========================================
+FROM python:3.12-slim AS runtime
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user (required by HF Spaces)
+RUN useradd -m -u 1000 user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
+
+# Copy requirements from builder
+COPY --from=builder /build/requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY --chown=user src/house_pricing /app/src/house_pricing
+
+# Copy model files (embedded in image)
+COPY --chown=user models/production/model.joblib /app/models/production/model.joblib
+COPY --chown=user models/production/preprocessor.pkl /app/models/production/preprocessor.pkl
+COPY --chown=user models/production/metadata.json /app/models/production/metadata.json
+
+# Copy data for preprocessor fallback
+COPY --chown=user data/processed/preprocessor.pkl /app/data/processed/preprocessor.pkl
+
+# Create necessary directories
+RUN mkdir -p /app/logs/drift_reports && \
+    chown -R user:user /app
+
+# Set Python path
+ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
+
+# Switch to non-root user
+USER user
+
+# Hugging Face Spaces uses port 7860
+EXPOSE 7860
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:7860/health || exit 1
+
+# Environment variables for HF Spaces
+ENV MODEL_SOURCE=local
+ENV MLFLOW_TRACKING_URI=""
+ENV API_KEY=demo-key
+ENV CORS_ORIGINS=*
+
+# Start command - HF Spaces requires port 7860
+CMD ["uvicorn", "house_pricing.api.app:app", "--host", "0.0.0.0", "--port", "7860"]
